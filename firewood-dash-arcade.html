@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Firewood Dash: A Volume II Arcade Game</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bitter:wght@600;800&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#e9edf3; --panel:#ffffff; --ink:#141821; --ink-soft:#465064;
+  --line:#141821; --line-soft:#b7c0cf; --field:#f5f7fb;
+  --night:#0c1220; --lamp:#f2ab1d; --lamp-ink:#141821; --good:#1b7a52; --bad:#a3361f; --focus:#1d4ed8;
+  --bar:#141821; --bar-ink:#f3f5f9;
+  --head:'Bitter','Rockwell','Georgia',serif;
+  --body:'Atkinson Hyperlegible','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#10141b; --panel:#1a202b; --ink:#eaeef5; --ink-soft:#b0bacb;
+    --line:#8a97ad; --line-soft:#363f50; --field:#131923; --good:#5fd39a; --bad:#ff9b85; --focus:#8fb0ff;
+    --bar:#0a0d12; --bar-ink:#eaeef5;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#10141b; --panel:#1a202b; --ink:#eaeef5; --ink-soft:#b0bacb;
+  --line:#8a97ad; --line-soft:#363f50; --field:#131923; --good:#5fd39a; --bad:#ff9b85; --focus:#8fb0ff;
+  --bar:#0a0d12; --bar-ink:#eaeef5;
+}
+html{ scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.5; }
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); background:var(--bar); z-index:30; }
+h1,h2,h3{ font-family:var(--head); line-height:1.15; margin:0; }
+p{ margin:0 0 .8em; }
+:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+
+.bar{ position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:var(--bar); color:var(--bar-ink);
+  display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; }
+.bar strong{ font-family:var(--head); font-size:1.05rem; white-space:nowrap; }
+.bar span{ font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.stage{ max-width:1000px; margin:0 auto; padding:12px 12px 40px; }
+#sMenu,#sResults{ max-width:560px; margin-left:auto; margin-right:auto; }
+#sGame.on{ display:grid; gap:10px; grid-template-columns:minmax(0,1fr); grid-template-areas:'hud' 'q' 'cv' 'ctl'; max-width:560px; margin:0 auto; }
+.hudwrap{ grid-area:hud; }
+.qpanel{ grid-area:q; }
+.cwrap{ grid-area:cv; }
+.controls{ grid-area:ctl; }
+@media (min-width:860px){
+  :root{ --cw:min(540px, calc((100vh - 130px) * 0.75)); }
+  #sGame.on{ max-width:none; grid-template-columns:minmax(280px,1fr) var(--cw); grid-template-areas:'hud cv' 'q cv' 'ctl cv'; grid-template-rows:auto auto 1fr; gap:12px 20px; align-items:start; }
+  .qpanel .q{ font-size:1.15rem; }
+}
+button{ font:inherit; font-weight:700; cursor:pointer; min-height:48px; padding:8px 20px;
+  border:3px solid var(--line); background:var(--lamp); color:var(--lamp-ink); border-radius:4px; }
+button.alt{ background:var(--panel); color:var(--ink); }
+button:hover:not(:disabled){ box-shadow:3px 3px 0 var(--line); }
+button:disabled{ opacity:.5; cursor:default; }
+
+.hud{ display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; margin-bottom:8px; }
+.hud .lives{ display:flex; gap:4px; }
+.hud svg.flame{ width:26px; height:30px; }
+.hud .mid{ text-align:center; font-weight:700; }
+.hud .mid .sc{ font-family:var(--head); font-size:1.5rem; }
+.hud .mid small{ display:block; color:var(--ink-soft); font-weight:400; font-size:.85rem; }
+.hud .rt{ display:flex; gap:6px; }
+.hud .rt button{ min-height:40px; padding:4px 12px; }
+#btnHurry2{ display:none; }
+@media (max-width:859px){ .controls{ display:none; } #btnHurry2{ display:inline-block; } .qpanel{ min-height:0; } .hud{ grid-template-columns:auto 1fr; } .hud .rt{ grid-column:1 / -1; } .hud .rt button{ flex:1; padding:4px 8px; } }
+
+.qpanel{ background:var(--panel); border:3px solid var(--line); border-radius:4px; padding:10px 14px; margin-bottom:8px; min-height:5.2em; }
+.qpanel .tag{ display:inline-block; background:var(--lamp); color:var(--lamp-ink); border:2px solid #141821; padding:0 8px; font-weight:700; font-size:.82rem; margin-bottom:4px; }
+.qpanel .q{ font-weight:700; font-size:1.02rem; line-height:1.35; }
+.prog{ height:8px; background:var(--panel); border:2px solid var(--line); border-radius:3px; overflow:hidden; margin-bottom:8px; }
+.prog i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#566a89,var(--lamp)); transition:width .3s ease; }
+
+.cwrap{ position:relative; border:3px solid var(--line); border-radius:4px; overflow:hidden; background:var(--night); touch-action:none; }
+canvas{ display:block; width:100%; height:auto; }
+.overlay{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  background:rgba(12,18,32,.88); color:#eef2f8; padding:18px; gap:8px; }
+.overlay.on{ display:flex; }
+.overlay h2{ font-size:1.9rem; }
+.overlay p{ max-width:36ch; }
+
+.controls{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px; }
+.controls button{ min-height:56px; font-size:1.05rem; }
+
+.fb{ border:3px solid var(--line); background:var(--panel); color:var(--ink); padding:12px 14px; display:none; }
+.cwrap .fb{ position:absolute; top:0; left:0; right:0; max-height:74%; overflow:auto; border-width:0 0 4px 0; z-index:5; }
+.fb.on{ display:block; }
+.fb.ok{ border-color:var(--good); }
+.fb.no{ border-color:var(--bad); }
+.fb h3{ font-size:1.15rem; margin-bottom:4px; }
+.fb .ans{ font-weight:700; }
+.keys{ color:var(--ink-soft); font-size:.88rem; margin-top:8px; }
+
+/* menu / results screens (outside canvas) */
+.panelbig{ background:var(--panel); border:3px solid var(--line); border-radius:4px; padding:22px 18px; }
+.panelbig h1{ font-size:clamp(2.2rem,8vw,3.2rem); font-weight:800; }
+.hero{ background:var(--night); color:#eef2f8; border-radius:4px; padding:24px 18px; margin-bottom:14px; position:relative; overflow:hidden; }
+.hero .glow{ position:absolute; right:-50px; top:-50px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle, rgba(242,171,29,.5), rgba(242,171,29,0) 70%); }
+.hero h1{ font-size:clamp(2.4rem,9vw,3.6rem); font-weight:800; }
+.hero p{ color:#e3e9f3; position:relative; }
+fieldset{ border:2px solid var(--line); background:var(--panel); border-radius:4px; padding:10px 14px 12px; margin:0 0 12px; min-width:0; }
+legend{ font-weight:700; padding:0 6px; }
+.radio{ display:flex; gap:10px; align-items:flex-start; padding:5px 0; cursor:pointer; }
+.radio input{ width:22px; height:22px; margin-top:2px; accent-color:var(--lamp); }
+.radio small{ display:block; color:var(--ink-soft); font-size:.88rem; }
+.screen{ display:none; }
+.screen.on{ display:block; }
+.bars{ display:grid; gap:10px; margin:12px 0 16px; }
+.brow{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1.6fr) auto; gap:10px; align-items:center; }
+@media (max-width:520px){ .brow{ grid-template-columns:1fr auto; } .brow .bt{ grid-column:1 / -1; } }
+.brow .bt{ height:14px; border:2px solid var(--line); background:var(--field); border-radius:3px; overflow:hidden; }
+.brow .bf{ height:100%; background:linear-gradient(90deg,#566a89,var(--lamp)); }
+.brow .nm{ font-weight:700; }
+.rank{ font-family:var(--head); font-size:clamp(1.8rem,6vw,2.5rem); font-weight:800; }
+.actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+.field label{ display:block; font-weight:700; margin-bottom:4px; }
+.field input[type="text"]{ width:100%; max-width:340px; font:inherit; color:var(--ink); background:var(--field); border:2px solid var(--line-soft); border-radius:3px; padding:8px 10px; }
+.msg{ min-height:1.5em; font-weight:700; color:var(--good); }
+.note{ color:var(--ink-soft); font-size:.92rem; }
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="bar" role="banner"><strong>Firewood Dash</strong><span id="barInfo">Volume II arcade game</span></div>
+
+<div class="stage">
+
+  <!-- MENU -->
+  <section class="screen on" id="sMenu">
+    <div class="hero">
+      <div class="glow" aria-hidden="true"></div>
+      <h1>Firewood Dash</h1>
+      <p>A Volume II arcade game</p>
+      <p>You are the unseen helper in the woods. Each question drops three answers down three lanes. Steer into the lane with the right answer to grab a log for the cottage family. Wrong answers snuff a flame out, and three flames is all you get.</p>
+    </div>
+    <fieldset>
+      <legend>Speed</legend>
+      <label class="radio"><input type="radio" name="speed" value="easy"><span>Easy<small>Answers fall slowly. Good for a first run.</small></span></label>
+      <label class="radio"><input type="radio" name="speed" value="normal" checked><span>Normal<small>About 11 seconds per question.</small></span></label>
+      <label class="radio"><input type="radio" name="speed" value="fast"><span>Fast<small>Answers fall quickly for bonus points.</small></span></label>
+    </fieldset>
+    <fieldset>
+      <legend>Length</legend>
+      <label class="radio"><input type="radio" name="len" value="quick" checked><span>Quick run<small>18 questions.</small></span></label>
+      <label class="radio"><input type="radio" name="len" value="full"><span>Full run<small>27 questions.</small></span></label>
+    </fieldset>
+    <fieldset>
+      <legend>Options</legend>
+      <label class="radio"><input type="checkbox" id="optPractice"><span>Practice mode<small>No flames are lost, so you can learn from every answer.</small></span></label>
+      <label class="radio"><input type="checkbox" id="optSound"><span>Sound effects<small>Off by default so the classroom stays quiet.</small></span></label>
+    </fieldset>
+    <div class="actions"><button type="button" id="btnStart">Start running</button></div>
+    <p class="note" id="bestLine"></p>
+    <p class="keys">Controls: Left and Right arrows (or A and D), or the 1, 2, and 3 keys, move you between lanes. Down arrow (or S) makes the answers fall faster for a bonus. L uses a lantern, P pauses. On a phone or tablet, tap a lane to move, and hold Hurry to speed things up.</p>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen" id="sGame">
+    <div class="hudwrap">
+    <div class="hud">
+      <div class="lives" id="lives" aria-label="Flames left"></div>
+      <div class="mid"><span class="sc" id="score">0</span><small id="comboTxt">Combo x1</small></div>
+      <div class="rt">
+        <button type="button" class="alt" id="btnLantern" disabled aria-label="Use a lantern to cross out one wrong answer">Lantern 0</button>
+        <button type="button" class="alt" id="btnHurry2" aria-label="Hold to make the answers fall faster">Hurry</button>
+        <button type="button" class="alt" id="btnPause">Pause</button>
+      </div>
+    </div>
+    <div class="prog" aria-hidden="true"><i id="progFill"></i></div>
+    </div>
+    <div class="qpanel" aria-live="polite"><span class="tag" id="qTag"></span><div class="q" id="qText"></div></div>
+    <div class="cwrap">
+      <canvas id="cv" width="540" height="720" role="img" aria-label="Arcade lanes. Three answers fall down three lanes. Move the helper into the lane with the correct answer."></canvas>
+      <div class="overlay" id="ovBanner"><h2 id="bnTitle"></h2><p id="bnText"></p></div>
+      <div class="fb" id="fb" role="status" aria-live="polite"></div>
+      <div class="overlay" id="ovPause"><h2>Paused</h2><p>Take a breath. The woods will wait.</p><button type="button" id="btnResume">Resume</button></div>
+    </div>
+    <div class="controls">
+      <button type="button" class="alt" id="btnL" aria-label="Move left">Left</button>
+      <button type="button" class="alt" id="btnH" aria-label="Make the answers fall faster">Hurry</button>
+      <button type="button" class="alt" id="btnR" aria-label="Move right">Right</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="sResults"><div class="panelbig" id="resBox"></div></section>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= QUESTION BANK (3 choices each) ================= */
+function Q(q, right, wrongs, why){ return { q:q, right:right, wrongs:wrongs, why:why }; }
+var NIGHTS = [
+  { title:'Night 1', skill:'Context clues', tek:'8.2B', tip:'Look at the words around a hard word. The clue can come before it, after it, or in the next sentence.', items:[
+    Q('The creature says, “I was benevolent; my soul glowed with love and humanity.” What does “benevolent” most likely mean?','Kind and caring',['Angry and bitter','Clever and sly'],'The words “my soul glowed with love and humanity” explain what “benevolent” means: kind and caring.'),
+    Q('In “I was benevolent; my soul glowed with love and humanity,” which words are the strongest clue to what “benevolent” means?','my soul glowed with love and humanity',['Believe me, Frankenstein','but am I not alone'],'The words “my soul glowed with love and humanity” describe what benevolent looks like.'),
+    Q('“I am alone and miserable; man will not associate with me.” What does “associate” most likely mean?','Spend time with',['Argue with','Fight against'],'The creature says he is “alone,” so “associate” means to spend time with or keep company with.'),
+    Q('Victor wants to “wreak the utmost extent of anger on his head, and avenge the deaths of William and Justine.” What does “wreak” most likely mean?','Let out or inflict',['Hide','Forget'],'Victor wants to avenge two deaths and uses “the utmost extent of anger,” so “wreak” means to let out or inflict.'),
+    Q('The creature says, “All men hate the wretched,” and then calls himself “alone, miserably alone.” What does “wretched” most likely mean?','Unhappy and unfortunate',['Wealthy and proud','Strong and brave'],'The clue comes on the next page. He is “miserably alone,” so “wretched” means unhappy and unfortunate.')
+  ] },
+  { title:'Night 2', skill:'Inferences with evidence', tek:'8.5F', tip:'An inference is a smart guess made from clues in the text. Name the clue that proves it.', items:[
+    Q('Why does the creature visit the old man while Felix and Agatha are away?','The old man is blind, so he cannot judge how the creature looks',['The old man owes him a favor','The old man invited him'],'The old man is blind, so he cannot be frightened by the creature’s appearance.'),
+    Q('Victor says, “For the first time I felt what the duties of a creator towards his creature were.” What can you infer about Victor?','He is starting to accept responsibility, which he had not felt before',['He has always felt responsible for the creature','He wants to hurt the creature more'],'The words “for the first time” show that Victor is feeling responsible now, and he had not before.'),
+    Q('The creature says, “One as deformed and horrible as myself would not deny herself to me.” What can you infer about why he wants a companion?','He believes only someone like himself would accept him',['He wants someone to help him fight Victor','He wants to prove he is stronger than Victor'],'He says a being as “deformed and horrible” as he is would not turn him away. He believes only someone like himself would accept him.'),
+    Q('Which detail from pages 96 and 97 is the best evidence that the creature wants to help the family?','He puts down the food he took and secretly brings firewood at night',['He hides next to the cottage','He smiles at the villagers'],'Putting down the food and secretly bringing firewood are actions that help the family.'),
+    Q('What can you infer from the creature setting the cottage on fire in Chapter 6?','He turns angry and violent after being rejected by the family he loved',['He enjoys fire','He wants to help the family'],'The family he loved attacked him, and he responded with revenge. The fire shows how rejection turns his hurt into anger.')
+  ] },
+  { title:'Night 3', skill:'Paraphrasing and summarizing', tek:'8.6D', tip:'A good paraphrase keeps every important idea and feeling, adds nothing new, and uses your own words.', items:[
+    Q('Which is the best paraphrase? “Believe me, Frankenstein: I was benevolent; my soul glowed with love and humanity: but am I not alone, miserably alone?”','Trust me, Victor: I used to be kind and full of love for people, but isn’t it true that I am completely and painfully alone?',['Victor, I am an angry person who wants revenge on everyone.','Trust me, Victor: I am lonely sometimes.'],'Keep “kind,” “love,” and “painfully alone.” The other choices change the meaning or drop the feeling.'),
+    Q('Which is the best paraphrase? “My companion must be of the same species, and have the same defects. This being you must create.”','I want a partner who is exactly like me, flaws and all, and you are the one who must make her.',['I want a partner who looks better than I do.','I want a partner who is not like me at all.'],'The creature wants a companion of the same kind with the same flaws, and he says Victor must make her.'),
+    Q('Which sentence is the best one-sentence summary of the creature’s offer in Chapter 7?','The creature asks Victor to make a female companion because he is lonely, and he promises that he and she will leave humankind alone.',['The creature threatens to destroy Victor’s home unless Victor leaves the country.','The creature asks Victor to forgive him for what he did to the cottage.'],'A good summary states what he asks, why, and what he offers. This one includes all three.'),
+    Q('Which summary of Chapters 3 and 4 keeps the events in the right order?','The creature wakes alone and wanders, the villagers react with fear, he watches a family and secretly helps them, and he learns words.',['The creature learns words, then wakes alone, then secretly helps the family, then the villagers react with fear.','The villagers react with fear, then the creature learns words, then he wakes alone, then he helps the family.'],'A summary keeps events in logical order: he wakes alone, the villagers react, he watches and helps the family, and he learns words.'),
+    Q('Which is the best paraphrase? “Remember that I am thy creature; I ought to be thy Adam, but I am rather the fallen angel, whom thou drivest from joy for no misdeed.”','Remember that you made me. I should be like Adam, who was cared for, but instead I am like the fallen angel you drive away from happiness for no wrongdoing.',['I am an angel, and you should be afraid of me.','Remember that I made you. I should be your teacher, and you should obey me.'],'The creature reminds Victor that he made him, says he should have been cared for like Adam, and says he has been driven away instead.')
+  ] },
+  { title:'Night 4', skill:'Point of view and irony', tek:'8.9E', tip:'Dramatic irony is when readers know something the characters do not. Ask: who knows what?', items:[
+    Q('Which statement describes DRAMATIC IRONY in Chapters 3 and 4?','The family thinks a good spirit is helping them, but readers know it is the creature, the one people fear',['The creature is hungry and takes food','The creature learns new words'],'Dramatic irony happens when readers know something the characters do not. Readers know the helper is the creature, but the family does not.'),
+    Q('Through whose eyes do Chapters 3 and 4 show most of the events?','The creature’s',['Victor’s','The villagers’'],'Chapters 3 and 4 are the creature’s story, so they show events from his point of view.'),
+    Q('On page 91, the creature smiles at the villagers, and they react with fear. What makes this ironic?','The creature wants friendship, but the villagers see only a monster',['The villagers are hungry','The creature is stronger than the villagers'],'The creature means to be friendly, but the villagers see only how he looks. The gap between his intention and their reaction is ironic.'),
+    Q('How does seeing the creature’s point of view change the way readers see Victor’s insults in Chapter 2?','The insults seem unfair because readers know the creature once helped the family',['The insults seem fair because the creature is dangerous','The insults seem unimportant'],'Once readers see the creature’s kindness, Victor’s names for him, such as “vile insect,” seem unfair.')
+  ] },
+  { title:'Night 5', skill:'Plot structure', tek:'8.7C', tip:'A flashback goes back in time. Foreshadowing is a hint about what will happen later.', items:[
+    Q('Why might the author place the creature’s earlier story after his meeting with Victor in Chapter 2?','To let readers meet the creature through Victor’s angry eyes first, then learn why he is lonely and hurt',['To hide that the creature is lonely','To prove Victor is right'],'Telling the earlier story second changes how readers feel. They first see the creature as Victor does, then learn why he is lonely and angry.'),
+    Q('Which moment is the best example of foreshadowing that the creature will face more rejection?','The villagers’ fearful reaction on page 91',['The family shares its food','The creature brings firewood'],'The villagers’ fear on page 91 hints that people will keep rejecting him based on how he looks.'),
+    Q('Which list shows the creature’s experiences in the order they happened?','Wakes alone, villagers react with fear, watches and helps the family, sets the cottage on fire',['Watches the family, wakes alone, sets the cottage on fire, villagers react with fear','Villagers react with fear, sets the cottage on fire, wakes alone, watches the family'],'In the creature’s life, he wakes alone, the villagers react, he watches and helps the family, and later he sets the cottage on fire.')
+  ] },
+  { title:'Night 6', skill:'Vocabulary', tek:'8.2', tip:'Try a new word in a sentence about the story to make it stick.', items:[
+    Q('What does “companion” mean?','A friend or partner who keeps you company',['An enemy who follows you','A leader'],'A companion is a friend or partner who keeps you company. It is what the creature asks Victor to make.'),
+    Q('What does “spurn” mean?','To reject with scorn',['To welcome warmly','To forgive'],'“Spurn” means to reject someone with scorn. It describes how people treat the creature.'),
+    Q('What does “fraught” mean in the phrase “Victor’s decision is fraught”?','Full of danger or trouble',['Full of laughter','Free of worry'],'“Fraught” means full of danger or trouble.'),
+    Q('What does “console” mean?','To comfort someone who is sad or upset',['To argue with','To trick'],'“Console” means to comfort someone who is sad or upset.'),
+    Q('What does “prolonged” mean?','Lasting a long time',['Very short','Done in secret'],'“Prolonged” means lasting a long time.')
+  ] }
+];
+
+/* ================= setup ================= */
+var W = 540, H = 720, LANES = 3, LW = W / LANES;
+var PLAYER_Y = H - 96, PLAYER_TOP = PLAYER_Y - 50;
+var BODY = "'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif";
+var HEAD = "'Bitter','Rockwell','Georgia',serif";
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+function $(id){ return document.getElementById(id); }
+function el(tag, attrs, kids){ var n = document.createElement(tag); if (attrs) for (var k in attrs){ if (k === 'class') n.className = attrs[k]; else if (k === 'text') n.textContent = attrs[k]; else n.setAttribute(k, attrs[k]); } (kids || []).forEach(function(c){ if (c) n.appendChild(c); }); return n; }
+function shuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+function lsGet(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+function showScreen(id){ ['sMenu','sGame','sResults'].forEach(function(s){ $(s).classList.toggle('on', s === id); }); window.scrollTo(0, 0); }
+
+/* ---- sound ---- */
+var audio = null;
+function beep(f, d, type, vol){
+  if (!$('optSound').checked) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    var o = audio.createOscillator(), g = audio.createGain();
+    o.type = type || 'square'; o.frequency.value = f; g.gain.value = vol || 0.05;
+    o.connect(g); g.connect(audio.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + d);
+    o.stop(audio.currentTime + d + 0.02);
+  } catch (e) {}
+}
+
+/* ================= state ================= */
+var S = null;
+var DUR = { easy:16, normal:11, fast:8 };
+var player = { lane:1, x:LW * 1.5 };
+var bg = { t:0, trees:[] };
+for (var i = 0; i < 14; i++) bg.trees.push({ x:Math.random() * W, y:Math.random() * H, s:0.6 + Math.random() * 0.9, layer:i % 2 });
+var stars = []; for (var si = 0; si < 40; si++) stars.push({ x:Math.random() * W, y:Math.random() * H * 0.7, r:0.6 + Math.random() * 1.4, p:Math.random() * 6 });
+
+function buildQueue(len){
+  var q = [];
+  NIGHTS.forEach(function(n, ni){ var items = len === 'quick' ? n.items.slice(0, 3) : n.items; items.forEach(function(it){ q.push({ night:ni, item:it }); }); });
+  return q;
+}
+function newRun(queue){
+  S = { queue:queue, idx:0, hearts:3, score:0, streak:0, best:0, embers:0, emberTotal:0, lanterns:0, correct:0, results:[], missed:[],
+        phase:'banner', timer:0, gates:[], sparks:[], floaters:[], practice:$('optPractice').checked,
+        speed:document.querySelector('input[name="speed"]:checked').value, hurry:false, elapsed:0, total:1, curNight:-1, shake:0 };
+  player.lane = 1; player.x = LW * 1.5;
+  renderLives(); updateHud(); $('fb').className = 'fb';
+}
+function mult(){ return S.streak >= 9 ? 4 : S.streak >= 6 ? 3 : S.streak >= 3 ? 2 : 1; }
+
+/* ================= HUD ================= */
+function flameSvg(on){
+  var ns = 'http://www.w3.org/2000/svg';
+  var s = document.createElementNS(ns, 'svg'); s.setAttribute('viewBox', '0 0 26 30'); s.setAttribute('class', 'flame');
+  var p = document.createElementNS(ns, 'path');
+  p.setAttribute('d', 'M13 2 C15 8 22 11 22 19 C22 25 18 28 13 28 C8 28 4 25 4 19 C4 14 8 12 9 7 C11 9 12 6 13 2 Z');
+  p.setAttribute('fill', on ? '#f2ab1d' : 'none'); p.setAttribute('stroke', on ? '#141821' : '#8a97ad'); p.setAttribute('stroke-width', '2');
+  s.appendChild(p); return s;
+}
+function renderLives(){
+  var box = $('lives'); box.innerHTML = '';
+  for (var i = 0; i < 3; i++) box.appendChild(flameSvg(i < S.hearts));
+  box.setAttribute('aria-label', S.practice ? 'Practice mode, no flames are lost' : (S.hearts + (S.hearts === 1 ? ' flame left' : ' flames left')));
+}
+function updateHud(){
+  $('score').textContent = S.score;
+  $('comboTxt').textContent = 'Combo x' + mult() + ', embers ' + S.embers;
+  var lb = $('btnLantern'); lb.textContent = 'Lantern ' + S.lanterns; lb.disabled = !(S.lanterns > 0 && S.phase === 'falling');
+  $('progFill').style.width = Math.round(S.idx / S.queue.length * 100) + '%';
+}
+
+/* ================= question flow ================= */
+function wrapText(text, maxW){
+  var words = text.split(' '), lines = [], cur = '';
+  words.forEach(function(w){ var t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur); return lines;
+}
+function fit(text, maxW, maxH){
+  var res = null;
+  for (var size = 18; size >= 11; size--) {
+    ctx.font = '400 ' + size + 'px ' + BODY;
+    var lh = Math.round(size * 1.25), lines = wrapText(text, maxW);
+    res = { lines:lines, size:size, lh:lh };
+    if (lines.length * lh <= maxH) break;
+  }
+  return res;
+}
+function startBanner(){
+  var e = S.queue[S.idx], n = NIGHTS[e.night];
+  S.curNight = e.night; S.phase = 'banner'; S.timer = 2.2;
+  $('bnTitle').textContent = n.title + ': ' + n.skill;
+  $('bnText').textContent = 'TEKS ' + n.tek + '. ' + n.tip;
+  $('ovBanner').classList.add('on');
+  $('qTag').textContent = n.skill + ' (TEKS ' + n.tek + ')';
+  $('qText').textContent = 'Get ready…';
+  $('barInfo').textContent = n.title + ': ' + n.skill;
+  updateHud();
+}
+function beginQuestion(){
+  var e = S.queue[S.idx], it = e.item, n = NIGHTS[e.night];
+  $('ovBanner').classList.remove('on');
+  $('qTag').textContent = n.skill + ' (TEKS ' + n.tek + ')';
+  $('qText').textContent = it.q;
+  var opts = shuffle([it.right].concat(it.wrongs));
+  var gw = LW - 16, innerW = gw - 22, maxText = 210;
+  var fits = opts.map(function(o){ return fit(o, innerW, maxText); });
+  var maxLines = 0; fits.forEach(function(f){ maxLines = Math.max(maxLines, f.lines.length * f.lh); });
+  var gh = Math.max(96, maxLines + 34);
+  S.gates = opts.map(function(o, i){ return { text:o, lane:i, y:-gh, h:gh, w:gw, right:o === it.right, gone:false, state:'', f:fits[i] }; });
+  var night = e.night;
+  var dur = Math.max(5, DUR[S.speed] - night * 0.4);
+  var dist = PLAYER_TOP + gh;
+  S.v = dist / dur; S.total = dur; S.elapsed = 0; S.hurry = false; S.sparks = []; S.emberTimer = 0.6;
+  S.phase = 'falling'; S.fbShown = false;
+  $('fb').className = 'fb';
+  updateHud();
+}
+function resolve(){
+  var it = S.queue[S.idx].item, n = NIGHTS[S.queue[S.idx].night];
+  var gate = S.gates[player.lane];
+  var ok = !!(gate && !gate.gone && gate.right);
+  S.gates.forEach(function(g){ if (g.right) g.state = 'right'; });
+  if (gate && !gate.gone && !gate.right) gate.state = 'wrong';
+  S.results.push({ night:S.queue[S.idx].night, ok:ok });
+  var gain = 0;
+  if (ok) {
+    S.streak++; S.best = Math.max(S.best, S.streak); S.correct++;
+    var bonus = Math.max(0, Math.round(60 * (1 - S.elapsed / S.total)));
+    gain = (100 + bonus) * mult();
+    S.score += gain;
+    S.floaters.push({ x:player.x, y:S.gates[0].y - 22, t:1.4, text:'+' + gain, color:'#5fd39a' });
+    if (S.streak === 3 || S.streak === 6 || S.streak === 9) { S.lanterns++; S.floaters.push({ x:W / 2, y:H / 2, t:1.6, text:'Lantern earned!', color:'#f2ab1d' }); }
+    beep(660, 0.12, 'square'); setTimeout(function(){ beep(880, 0.14, 'square'); }, 110);
+  } else {
+    S.streak = 0; S.shake = 0.35; S.missed.push(S.queue[S.idx]);
+    if (!S.practice) S.hearts--;
+    S.floaters.push({ x:player.x, y:S.gates[0].y - 22, t:1.4, text:S.practice ? 'Not quite' : 'Flame lost', color:'#ff9b85' });
+    beep(180, 0.25, 'sawtooth', 0.06);
+  }
+  renderLives(); S.phase = 'resolved'; updateHud();
+  var fb = $('fb'); fb.className = 'fb on ' + (ok ? 'ok' : 'no'); fb.innerHTML = '';
+  fb.appendChild(el('h3', { text: ok ? 'Log delivered!' + (gain ? ' ' + gain + ' points.' : '') : (S.practice ? 'Not quite, and that is okay.' : (S.hearts <= 0 ? 'The last flame went out.' : 'A flame went out.')) }));
+  fb.appendChild(el('p', {}, [ el('span', { class:'ans', text:'Correct answer: ' }), document.createTextNode(it.right) ]));
+  fb.appendChild(el('p', { text:it.why }));
+  var last = S.hearts <= 0 || S.idx >= S.queue.length - 1;
+  var btn = el('button', { type:'button', id:'btnNext', text: last ? 'See my results' : 'Next question' });
+  btn.addEventListener('click', next);
+  fb.appendChild(btn); btn.focus({ preventScroll:true });
+}
+function next(){
+  if (S.phase !== 'resolved') return;
+  if (S.hearts <= 0 || S.idx >= S.queue.length - 1) { showResults(); return; }
+  S.idx++;
+  $('fb').className = 'fb';
+  if (S.queue[S.idx].night !== S.curNight) startBanner(); else beginQuestion();
+}
+
+/* ================= input ================= */
+function setLane(l){ if (!S || S.phase === 'resolved' || S.phase === 'paused') return; player.lane = Math.max(0, Math.min(LANES - 1, l)); }
+function useLantern(){
+  if (!S || S.phase !== 'falling' || S.lanterns <= 0) return;
+  var wrong = S.gates.filter(function(g){ return !g.right && !g.gone; });
+  if (wrong.length < 1) return;
+  var g = wrong[Math.floor(Math.random() * wrong.length)];
+  g.gone = true; S.lanterns--;
+  S.floaters.push({ x:g.lane * LW + LW / 2, y:g.y + g.h / 2, t:1, text:'Cleared!', color:'#f2ab1d' });
+  beep(520, 0.1, 'triangle'); updateHud();
+}
+document.addEventListener('keydown', function(e){
+  if (!S || !$('sGame').classList.contains('on')) return;
+  var k = e.key;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { setLane(player.lane - 1); e.preventDefault(); }
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') { setLane(player.lane + 1); e.preventDefault(); }
+  else if (k === '1' || k === '2' || k === '3') { setLane(Number(k) - 1); }
+  else if (k === 'ArrowDown' || k === 's' || k === 'S') { S.hurry = true; e.preventDefault(); }
+  else if (k === 'l' || k === 'L') { useLantern(); }
+  else if (k === 'p' || k === 'P') { togglePause(); }
+  else if ((k === 'Enter' || k === ' ') && S.phase === 'resolved' && document.activeElement && document.activeElement.id !== 'btnNext') { next(); e.preventDefault(); }
+});
+document.addEventListener('keyup', function(e){ if (S && (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S')) S.hurry = false; });
+cv.addEventListener('pointerdown', function(e){
+  var r = cv.getBoundingClientRect(); var x = (e.clientX - r.left) / r.width * W;
+  setLane(Math.floor(x / LW));
+});
+$('btnL').addEventListener('click', function(){ setLane(player.lane - 1); });
+$('btnR').addEventListener('click', function(){ setLane(player.lane + 1); });
+function hOn(e){ if (S) S.hurry = true; e.preventDefault(); } function hOff(){ if (S) S.hurry = false; }
+['btnH','btnHurry2'].forEach(function(id){ var hb = $(id); hb.addEventListener('pointerdown', hOn); hb.addEventListener('pointerup', hOff); hb.addEventListener('pointerleave', hOff); hb.addEventListener('pointercancel', hOff); });
+$('btnLantern').addEventListener('click', useLantern);
+function togglePause(){
+  if (!S) return;
+  if (S.phase === 'paused') { S.phase = S.prePause; $('ovPause').classList.remove('on'); $('btnPause').textContent = 'Pause'; }
+  else if (S.phase === 'falling' || S.phase === 'banner') { S.prePause = S.phase; S.phase = 'paused'; $('ovPause').classList.add('on'); $('btnPause').textContent = 'Resume'; $('btnResume').focus(); }
+  updateHud();
+}
+$('btnPause').addEventListener('click', togglePause);
+$('btnResume').addEventListener('click', togglePause);
+document.addEventListener('visibilitychange', function(){ if (document.hidden && S && S.phase === 'falling') togglePause(); });
+
+/* ================= update ================= */
+var last = 0;
+function update(dt){
+  bg.t += dt;
+  player.x += (player.lane * LW + LW / 2 - player.x) * Math.min(1, dt * 14);
+  if (!S) return;
+  if (S.shake > 0) S.shake -= dt;
+  S.floaters.forEach(function(f){ f.t -= dt; f.y -= 28 * dt; });
+  S.floaters = S.floaters.filter(function(f){ return f.t > 0; });
+  if (S.phase === 'banner') {
+    S.timer -= dt;
+    if (S.timer <= 0) beginQuestion();
+  } else if (S.phase === 'falling') {
+    var sp = S.v * (S.hurry ? 2.4 : 1);
+    S.elapsed += dt * (sp / S.v);
+    S.gates.forEach(function(g){ g.y += sp * dt; });
+    // embers
+    S.emberTimer -= dt;
+    if (S.emberTimer <= 0 && S.elapsed < S.total * 0.8) {
+      S.emberTimer = 0.9 + Math.random() * 1.1;
+      S.sparks.push({ lane:Math.floor(Math.random() * LANES), y:-10, vy:150 });
+    }
+    S.sparks.forEach(function(s){ s.y += s.vy * dt * (S.hurry ? 1.6 : 1); });
+    S.sparks = S.sparks.filter(function(s){
+      var cx = s.lane * LW + LW / 2;
+      if (s.y > PLAYER_TOP - 6 && s.y < PLAYER_Y + 40 && Math.abs(cx - player.x) < 34) {
+        S.embers++; S.emberTotal++; S.score += 10;
+        S.floaters.push({ x:cx, y:s.y, t:0.8, text:'+10', color:'#f2ab1d' });
+        beep(990, 0.05, 'triangle', 0.04);
+        if (S.embers >= 8) { S.embers = 0; if (S.hearts < 3 && !S.practice) { S.hearts++; renderLives(); S.floaters.push({ x:W / 2, y:H / 2 + 30, t:1.6, text:'A flame is back!', color:'#f2ab1d' }); } }
+        updateHud(); return false;
+      }
+      return s.y < H + 20;
+    });
+    var g0 = S.gates[0];
+    if (g0.y + g0.h >= PLAYER_TOP) resolve();
+  }
+}
+
+/* ================= draw ================= */
+function rr(x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function drawTree(x, y, s, col){
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(x, y - 46 * s); ctx.lineTo(x + 22 * s, y); ctx.lineTo(x - 22 * s, y); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x, y - 30 * s); ctx.lineTo(x + 28 * s, y + 20 * s); ctx.lineTo(x - 28 * s, y + 20 * s); ctx.closePath(); ctx.fill();
+  ctx.fillRect(x - 3 * s, y + 20 * s, 6 * s, 10 * s);
+}
+function draw(){
+  var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var sx = (S && S.shake > 0 && !rm) ? (Math.random() - 0.5) * 8 : 0;
+  ctx.save(); ctx.translate(sx, 0);
+  var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0a0f1c'); g.addColorStop(1, '#1a2336');
+  ctx.fillStyle = g; ctx.fillRect(-10, 0, W + 20, H);
+  stars.forEach(function(s){ ctx.globalAlpha = rm ? 0.8 : 0.45 + 0.45 * Math.sin(bg.t * 1.6 + s.p); ctx.fillStyle = '#dfe7f5'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.3); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  // scrolling trees
+  bg.trees.forEach(function(t){
+    var speed = rm ? 0 : (t.layer ? 52 : 28);
+    var y = ((t.y + bg.t * speed) % (H + 120)) - 60;
+    drawTree(t.x < W / 2 ? t.x * 0.2 + 8 : W - (W - t.x) * 0.2 - 8, y, t.s, t.layer ? '#101a2a' : '#0e1624');
+  });
+  // lane lines
+  ctx.strokeStyle = 'rgba(223,231,245,.18)'; ctx.lineWidth = 2; ctx.setLineDash([14, 14]);
+  for (var l = 1; l < LANES; l++) { ctx.beginPath(); ctx.moveTo(l * LW, 0); ctx.lineTo(l * LW, H); ctx.stroke(); }
+  ctx.setLineDash([]);
+  // ground strip
+  ctx.fillStyle = '#16202f'; ctx.fillRect(0, PLAYER_Y + 44, W, H);
+  ctx.strokeStyle = '#f2ab1d'; ctx.globalAlpha = 0.5; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, PLAYER_Y + 44); ctx.lineTo(W, PLAYER_Y + 44); ctx.stroke(); ctx.globalAlpha = 1;
+
+  if (S) {
+    // gates
+    S.gates.forEach(function(gt){
+      if (gt.gone) return;
+      var x = gt.lane * LW + 8, y = gt.y;
+      var fill = '#222d42', border = '#f2ab1d';
+      if (gt.state === 'right') { fill = '#17352a'; border = '#5fd39a'; }
+      if (gt.state === 'wrong') { fill = '#3a1f1a'; border = '#ff9b85'; }
+      rr(x, y, gt.w, gt.h, 10); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = border; ctx.stroke();
+      ctx.fillStyle = border; ctx.beginPath(); ctx.arc(x + 14, y + 14, 11, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#141821'; ctx.font = '700 14px ' + BODY; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ABC'.charAt(gt.lane), x + 14, y + 14);
+      var f = gt.f; ctx.font = '400 ' + f.size + 'px ' + BODY; ctx.fillStyle = '#f4f6fa'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      var total = f.lines.length * f.lh, ty = y + 24 + (gt.h - 24 - total) / 2 + f.lh / 2;
+      f.lines.forEach(function(ln, i){ ctx.fillText(ln, x + gt.w / 2, ty + i * f.lh); });
+    });
+    // embers
+    S.sparks.forEach(function(s){
+      var cx = s.lane * LW + LW / 2;
+      var rg = ctx.createRadialGradient(cx, s.y, 1, cx, s.y, 16); rg.addColorStop(0, 'rgba(255,214,120,1)'); rg.addColorStop(1, 'rgba(242,171,29,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, s.y, 16, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#ffd678'; ctx.beginPath(); ctx.arc(cx, s.y, 5, 0, 6.3); ctx.fill();
+    });
+  }
+  // player
+  var px = player.x, py = PLAYER_Y + (rm ? 0 : Math.sin(bg.t * 8) * 1.5);
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(px, PLAYER_Y + 42, 30, 7, 0, 0, 6.3); ctx.fill();
+  // lantern glow
+  var lg = ctx.createRadialGradient(px + 26, py + 8, 2, px + 26, py + 8, 46); lg.addColorStop(0, 'rgba(242,171,29,.55)'); lg.addColorStop(1, 'rgba(242,171,29,0)');
+  ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(px + 26, py + 8, 46, 0, 6.3); ctx.fill();
+  // cloak
+  ctx.fillStyle = '#34415e'; ctx.beginPath(); ctx.moveTo(px, py - 34); ctx.lineTo(px + 26, py + 40); ctx.lineTo(px - 26, py + 40); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#8ea3c4'; ctx.lineWidth = 2; ctx.stroke();
+  // hood + face
+  ctx.fillStyle = '#2a3652'; ctx.beginPath(); ctx.arc(px, py - 30, 15, 0, 6.3); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#c9b79c'; ctx.beginPath(); ctx.arc(px, py - 28, 8, 0, 6.3); ctx.fill();
+  // lantern
+  ctx.fillStyle = '#f2ab1d'; ctx.fillRect(px + 22, py + 2, 9, 12); ctx.strokeStyle = '#141821'; ctx.lineWidth = 2; ctx.strokeRect(px + 22, py + 2, 9, 12);
+  // logs bundle
+  ctx.fillStyle = '#8a5a2b'; ctx.fillRect(px - 22, py + 22, 22, 7); ctx.fillRect(px - 20, py + 30, 22, 7);
+  // floaters
+  if (S) S.floaters.forEach(function(f){
+    ctx.globalAlpha = Math.min(1, f.t * 1.5); ctx.fillStyle = f.color; ctx.font = '700 22px ' + HEAD; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#0c1220'; ctx.lineWidth = 4; ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y); ctx.globalAlpha = 1;
+  });
+  ctx.restore();
+}
+function resizeCanvas(){
+  var cw = cv.clientWidth || 540, dpr = window.devicePixelRatio || 1;
+  var pxW = Math.round(cw * dpr), pxH = Math.round(cw * dpr * H / W);
+  if (cv.width !== pxW) { cv.width = pxW; cv.height = pxH; }
+  ctx.setTransform(pxW / W, 0, 0, pxW / W, 0, 0);
+}
+function frame(t){
+  var dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+  resizeCanvas();
+  if (!S || S.phase !== 'paused') update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+/* ================= results ================= */
+function rankFor(p, done){
+  if (done && p >= 0.85) return 'Good Spirit';
+  if (p >= 0.65) return 'Steady Helper';
+  if (p >= 0.4) return 'Hopeful Helper';
+  return 'New Helper';
+}
+function showResults(){
+  var total = S.results.length, correct = S.correct, pct = total ? correct / total : 0;
+  var done = S.idx >= S.queue.length - 1 && S.hearts > 0;
+  var rank = rankFor(pct, done);
+  var prev = parseInt(lsGet('firewood-dash-best') || '0', 10);
+  if (S.score > prev) lsSet('firewood-dash-best', String(S.score));
+  $('barInfo').textContent = 'Results';
+  var box = $('resBox'); box.innerHTML = '';
+  box.appendChild(el('h2', { class:'rank', text:rank }));
+  box.appendChild(el('p', { text: done ? 'You made it through every night, and the cottage stayed warm.' : (S.practice ? 'Practice run finished.' : 'The last flame went out before dawn. Every run teaches you something, so try again.') }));
+  box.appendChild(el('p', { text:'Score: ' + S.score + ' points. Correct answers: ' + correct + ' of ' + total + ' (' + Math.round(pct * 100) + '%). Best streak: ' + S.best + '. Embers collected: ' + S.emberTotal + '.' }));
+  var bars = el('div', { class:'bars' }); var summary = [];
+  NIGHTS.forEach(function(n, ni){
+    var rs = S.results.filter(function(r){ return r.night === ni; }); if (!rs.length) return;
+    var c = rs.filter(function(r){ return r.ok; }).length; summary.push(n.skill + ' (' + n.tek + '): ' + c + ' of ' + rs.length);
+    var f = el('div', { class:'bf' }); f.style.width = Math.round(c / rs.length * 100) + '%';
+    bars.appendChild(el('div', { class:'brow' }, [ el('span', { class:'nm', text:n.skill + ' (' + n.tek + ')' }), el('div', { class:'bt' }, [f]), el('span', { text:c + ' of ' + rs.length }) ]));
+  });
+  box.appendChild(el('h3', { text:'How you did on each skill' })); box.appendChild(bars);
+  var weakest = null, wp = 2;
+  NIGHTS.forEach(function(n, ni){ var rs = S.results.filter(function(r){ return r.night === ni; }); if (!rs.length) return; var p = rs.filter(function(r){ return r.ok; }).length / rs.length; if (p < wp) { wp = p; weakest = n; } });
+  if (weakest && wp < 1) box.appendChild(el('p', { text:'Next, practice ' + weakest.skill.toLowerCase() + '. ' + weakest.tip }));
+  box.appendChild(el('div', { class:'field' }, [ el('label', { 'for':'nm', text:'Your name (optional, only used in the copied score card)' }), el('input', { type:'text', id:'nm', autocomplete:'off' }) ]));
+  var msg = el('p', { class:'msg', 'aria-live':'polite' });
+  var acts = el('div', { class:'actions' });
+  var bCopy = el('button', { type:'button', text:'Copy my score card' });
+  bCopy.addEventListener('click', function(){
+    var name = ($('nm').value || '').trim();
+    var lines = ['Firewood Dash: Volume II arcade game']; if (name) lines.push('Name: ' + name);
+    lines.push('Rank: ' + rank); lines.push('Score: ' + S.score); lines.push('Correct: ' + correct + ' of ' + total + ' (' + Math.round(pct * 100) + '%)');
+    summary.forEach(function(s){ lines.push(s); });
+    var txt = lines.join('\n');
+    function fallback(){ var ta = el('textarea', { readonly:'readonly', 'aria-label':'Score card text' }); ta.value = txt; ta.style.width = '100%'; ta.style.minHeight = '8em'; box.appendChild(ta); ta.focus(); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} msg.textContent = ok ? 'Copied.' : 'Select the text in the box and copy it with Ctrl+C (or Cmd+C).'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function(){ msg.textContent = 'Copied.'; }, fallback); else fallback();
+  });
+  acts.appendChild(bCopy);
+  if (S.missed.length) {
+    var bMiss = el('button', { type:'button', class:'alt', text:'Replay the ' + S.missed.length + ' I missed' });
+    bMiss.addEventListener('click', function(){ var q = S.missed.slice(); startRun(q); });
+    acts.appendChild(bMiss);
+  }
+  var bAgain = el('button', { type:'button', class:'alt', text:'Play again' });
+  bAgain.addEventListener('click', toMenu); acts.appendChild(bAgain);
+  box.appendChild(acts); box.appendChild(msg);
+  showScreen('sResults');
+}
+
+/* ================= start ================= */
+function startRun(queue){
+  newRun(queue); showScreen('sGame'); startBanner();
+  $('btnPause').textContent = 'Pause'; $('ovPause').classList.remove('on');
+}
+function toMenu(){
+  $('barInfo').textContent = 'Volume II arcade game';
+  var b = parseInt(lsGet('firewood-dash-best') || '0', 10);
+  $('bestLine').textContent = b > 0 ? 'Your best score on this device: ' + b + ' points.' : '';
+  S = null; showScreen('sMenu');
+}
+$('btnStart').addEventListener('click', function(){
+  var len = document.querySelector('input[name="len"]:checked').value;
+  startRun(buildQueue(len));
+});
+toMenu();
+window.__ARC = { get S(){ return S; }, player:player, NIGHTS:NIGHTS, setLane:setLane };
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
