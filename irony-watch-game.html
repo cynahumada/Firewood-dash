@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Irony Watch: A Volume III, Chapter 3 Game</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bitter:wght@600;800&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#e9f5f3; --panel:#ffffff; --ink:#12303a; --ink-soft:#4a6a70;
+  --line:#12303a; --line-soft:#a9c7c4; --field:#f3faf8;
+  --teal:#12485a; --lamp:#f28c28; --lamp-ink:#12303a; --glass:#bfe3df;
+  --good:#1b7a52; --bad:#a3361f; --focus:#1d4ed8; --bar:#0d3342; --bar-ink:#f3f9f8;
+  --head:'Bitter','Rockwell','Georgia',serif;
+  --body:'Atkinson Hyperlegible','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#0e1a1f; --panel:#16272e; --ink:#e8f3f2; --ink-soft:#a9c2c4;
+    --line:#7fa9a5; --line-soft:#2f4a50; --field:#112126; --glass:#2b5a5c;
+    --good:#5fd39a; --bad:#ff9b85; --focus:#8fb0ff; --bar:#081317; --bar-ink:#e8f3f2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#0e1a1f; --panel:#16272e; --ink:#e8f3f2; --ink-soft:#a9c2c4;
+  --line:#7fa9a5; --line-soft:#2f4a50; --field:#112126; --glass:#2b5a5c;
+  --good:#5fd39a; --bad:#ff9b85; --focus:#8fb0ff; --bar:#081317; --bar-ink:#e8f3f2;
+}
+html{ scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:18px; line-height:1.5; }
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); background:var(--bar); z-index:30; }
+h1,h2,h3{ font-family:var(--head); line-height:1.15; margin:0; }
+p{ margin:0 0 .8em; }
+:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+
+.bar{ position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:var(--bar); color:var(--bar-ink);
+  display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; }
+.bar strong{ font-family:var(--head); font-size:1.05rem; white-space:nowrap; }
+.bar span{ font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.wrap{ max-width:1080px; margin:0 auto; padding:14px 14px 50px; }
+.screen{ display:none; } .screen.on{ display:block; }
+button{ font:inherit; font-weight:700; cursor:pointer; min-height:46px; padding:8px 20px; border:3px solid var(--line); background:var(--lamp); color:var(--lamp-ink); border-radius:4px; }
+button.alt{ background:var(--panel); color:var(--ink); }
+button:hover:not(:disabled){ box-shadow:3px 3px 0 var(--line); }
+button:disabled{ opacity:.5; cursor:default; }
+
+/* start */
+.hero{ background:linear-gradient(180deg,#14153a 0%,#3b2a63 40%,#a64b7a 70%,#f28c28 100%); color:#fff; border-radius:6px; padding:28px 22px 26px; position:relative; overflow:hidden; }
+.hero h1{ font-size:clamp(2.4rem,7vw,4rem); font-weight:800; }
+.hero p{ max-width:60ch; color:#fff6ea; }
+.hero .sub{ font-size:1.15rem; margin:.4em 0 1em; }
+.hero svg{ position:absolute; right:10px; bottom:0; width:min(34%,230px); height:auto; opacity:.95; }
+@media (max-width:640px){ .hero svg{ display:none; } }
+.opts{ display:grid; gap:14px; margin:16px 0; }
+@media (min-width:700px){ .opts{ grid-template-columns:1fr 1fr; } }
+fieldset{ border:2px solid var(--line); background:var(--panel); border-radius:4px; padding:10px 14px 12px; margin:0; min-width:0; }
+legend{ font-weight:700; padding:0 6px; }
+.radio{ display:flex; gap:10px; align-items:flex-start; padding:5px 0; cursor:pointer; }
+.radio input{ width:22px; height:22px; margin-top:2px; accent-color:var(--lamp); }
+.radio small{ display:block; color:var(--ink-soft); font-size:.9rem; }
+.note{ color:var(--ink-soft); font-size:.92rem; }
+.actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+
+/* play layout */
+.layout{ display:grid; gap:16px; grid-template-columns:minmax(0,1fr); }
+@media (min-width:900px){ .layout{ grid-template-columns:320px minmax(0,1fr); gap:22px; } .side{ position:sticky; top:calc(env(safe-area-inset-top,0px) + 64px); align-self:start; } }
+.side{ min-width:0; }
+.scene{ border:3px solid var(--line); border-radius:6px; overflow:hidden; background:#14153a; }
+.scene svg{ display:block; width:100%; height:auto; }
+.meter{ margin-top:10px; }
+.meter .lab{ display:flex; justify-content:space-between; font-weight:700; font-size:.95rem; }
+.meter .trk{ height:16px; border:2px solid var(--line); background:var(--panel); border-radius:3px; overflow:hidden; margin-top:4px; }
+.meter .fil{ height:100%; width:0; background:linear-gradient(90deg,var(--teal),var(--lamp)); transition:width .5s ease; }
+.stats{ display:flex; justify-content:space-between; margin-top:8px; font-weight:700; }
+.dots{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; padding:0; list-style:none; }
+.dots li{ width:26px; height:26px; border-radius:50%; border:2px solid var(--line-soft); display:grid; place-items:center; font-size:.75rem; font-weight:700; background:var(--panel); }
+.dots li.cur{ background:var(--lamp); color:var(--lamp-ink); border-color:var(--line); }
+.dots li.done{ background:var(--teal); color:#fff; border-color:var(--teal); }
+
+.card{ background:var(--panel); border:3px solid var(--line); border-radius:4px; padding:18px 16px 18px; min-width:0; }
+.meta{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 12px; color:var(--ink-soft); font-size:.92rem; margin-bottom:8px; }
+.tag{ background:var(--lamp); color:var(--lamp-ink); border:2px solid #12303a; padding:0 10px; font-weight:700; font-size:.88rem; }
+.card h2{ font-size:1.5rem; margin-bottom:.35em; }
+.prompt{ font-weight:700; font-size:1.12rem; margin-bottom:12px; max-width:62ch; }
+.casebox{ border-left:6px solid var(--lamp); background:var(--field); padding:10px 14px; margin-bottom:12px; }
+.casebox small{ display:block; color:var(--ink-soft); }
+
+.choices{ display:grid; gap:10px; }
+.choice{ text-align:left; background:var(--field); color:var(--ink); border:3px solid var(--line-soft); font-weight:400; padding:11px 14px; min-height:50px; width:100%; }
+.choice:hover:not(:disabled){ border-color:var(--line); box-shadow:none; }
+.choice.right{ border-color:var(--good); box-shadow:inset 6px 0 0 var(--good); font-weight:700; }
+.choice.wrong{ border-color:var(--bad); box-shadow:inset 6px 0 0 var(--bad); }
+.choice:disabled{ opacity:1; }
+
+/* sort + match */
+.bins{ display:grid; gap:12px; }
+@media (min-width:640px){ .bins.two{ grid-template-columns:1fr 1fr; } }
+.bin{ border:3px dashed var(--line-soft); border-radius:6px; background:var(--field); min-height:150px; padding:0 0 8px; cursor:pointer; }
+.bin.hot{ border-color:var(--lamp); background:var(--panel); }
+.bin h3{ font-size:1rem; padding:8px 10px; background:var(--glass); border-radius:3px 3px 0 0; }
+.bin .hint{ padding:6px 10px; color:var(--ink-soft); font-size:.88rem; }
+.pcard{ margin:6px 8px 0; padding:8px 10px; border:3px solid var(--line); background:var(--lamp); color:var(--lamp-ink); border-radius:6px; font-weight:700; font-size:.95rem; text-align:left; width:calc(100% - 16px); min-height:44px; cursor:pointer; line-height:1.3; }
+.pcard.sel{ outline:4px solid var(--focus); outline-offset:1px; }
+.pcard.right{ background:#cfe9da; border-color:var(--good); color:#12303a; }
+.pcard.wrong{ background:#f6d6cf; border-color:var(--bad); color:#12303a; }
+.tray{ margin-top:14px; padding:6px 0 10px; border:2px solid var(--line-soft); border-radius:6px; background:var(--field); }
+.tray h3{ font-size:.95rem; padding:4px 10px; color:var(--ink-soft); }
+.rows{ display:grid; gap:10px; }
+.mrow{ display:grid; gap:8px; grid-template-columns:minmax(0,1fr); }
+@media (min-width:640px){ .mrow{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+.left{ border:2px solid var(--line-soft); border-radius:6px; background:var(--panel); padding:8px 12px; font-size:.97rem; display:flex; align-items:center; }
+.slot{ border:3px dashed var(--line-soft); border-radius:6px; background:var(--field); min-height:56px; padding:0 0 6px; cursor:pointer; }
+.slot.hot{ border-color:var(--lamp); }
+.slot .hint{ padding:14px 10px; color:var(--ink-soft); font-size:.88rem; text-align:center; }
+.fb{ margin-top:14px; border:3px solid var(--line); padding:12px 14px; background:var(--field); border-radius:4px; display:none; }
+.fb.on{ display:block; } .fb.ok{ border-color:var(--good); } .fb.no{ border-color:var(--bad); }
+.fb h3{ font-size:1.1rem; margin-bottom:4px; }
+.fb p{ margin-bottom:.5em; }
+.fb ul{ margin:.2em 0 .6em; padding-left:1.2em; }
+.scale{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:10px 0 14px; }
+.scale button{ background:var(--panel); color:var(--ink); min-height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.2; padding:6px 4px; font-size:.9rem; }
+.scale button b{ font-family:var(--head); font-size:1.5rem; }
+.scale button.on{ background:var(--lamp); color:var(--lamp-ink); }
+textarea{ width:100%; min-height:5em; font:inherit; color:var(--ink); background:var(--field); border:2px solid var(--line-soft); border-radius:3px; padding:8px 10px; }
+.field label{ display:block; font-weight:700; margin-bottom:4px; }
+.field input[type="text"]{ width:100%; max-width:340px; font:inherit; color:var(--ink); background:var(--field); border:2px solid var(--line-soft); border-radius:3px; padding:8px 10px; }
+.panelbig{ background:var(--panel); border:3px solid var(--line); border-radius:4px; padding:22px 18px; }
+.rank{ font-family:var(--head); font-size:clamp(1.9rem,6vw,2.7rem); font-weight:800; }
+.bars{ display:grid; gap:10px; margin:12px 0 16px; }
+.brow{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) auto; gap:10px; align-items:center; }
+@media (max-width:560px){ .brow{ grid-template-columns:1fr auto; } .brow .bt{ grid-column:1 / -1; } }
+.brow .bt{ height:14px; border:2px solid var(--line); background:var(--field); border-radius:3px; overflow:hidden; }
+.brow .bf{ height:100%; background:linear-gradient(90deg,var(--teal),var(--lamp)); }
+.brow .nm{ font-weight:700; }
+.msg{ min-height:1.5em; font-weight:700; color:var(--good); }
+@media (prefers-reduced-motion:reduce){ *{ transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+<div class="bar" role="banner"><strong>Irony Watch</strong><span id="barInfo">Volume III, Chapter 3</span></div>
+
+<div class="wrap">
+  <!-- START -->
+  <section class="screen on" id="sStart">
+    <div class="hero">
+      <h1>Irony Watch</h1>
+      <p class="sub">Volume III, Chapter 3 (pages 135 to 147)</p>
+      <p>You are the keeper of the lighthouse on Victor’s island. Every right answer makes the beam stronger, and a strong beam shows you what Victor misses. Sort, match, and solve four case files to see the story through two screens: Victor’s and the creature’s.</p>
+      <svg viewBox="0 0 200 220" aria-hidden="true"><polygon points="70,200 130,200 120,70 80,70" fill="#f1f3f3"/><polygon points="76,160 124,160 122,178 78,178" fill="#c8483a"/><polygon points="80,110 120,110 119,128 81,128" fill="#c8483a"/><rect x="76" y="56" width="48" height="14" fill="#1b2430"/><rect x="88" y="36" width="24" height="20" fill="#ffd978"/><polygon points="84,36 116,36 100,16" fill="#1b2430"/><polygon points="112,44 200,20 200,70" fill="#ffd978" opacity=".35"/><polygon points="88,44 0,20 0,70" fill="#ffd978" opacity=".35"/><ellipse cx="100" cy="206" rx="90" ry="12" fill="#0a1a24"/></svg>
+    </div>
+    <div class="opts">
+      <fieldset>
+        <legend>Who is playing?</legend>
+        <label class="radio"><input type="radio" name="mode" value="solo" checked><span>Just me<small>Play on your own.</small></span></label>
+        <label class="radio"><input type="radio" name="mode" value="teams"><span>Two teams<small>Teams take turns on one screen and share one lighthouse.</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>How to play</legend>
+        <p class="note" style="margin:6px 0 0">Tap a card to pick it up, then tap the box where it goes. You can also drag cards with a mouse. Tap a placed card to take it back. When every card is placed, press Check.</p>
+      </fieldset>
+    </div>
+    <div class="actions"><button type="button" id="btnStart">Light the lamp</button></div>
+    <p class="note" id="bestLine"></p>
+  </section>
+
+  <!-- PLAY -->
+  <section class="screen" id="sPlay">
+    <div class="layout">
+      <aside class="side">
+        <div class="scene" id="scene"></div>
+        <div class="meter" aria-live="polite"><div class="lab"><span>Beam strength</span><span id="beamTxt">0%</span></div><div class="trk"><i class="fil" id="beamFill"></i></div></div>
+        <div class="stats"><span>Score: <span id="score">0</span></span><span id="teamTxt"></span></div>
+        <ol class="dots" id="dots" aria-label="Watch progress"></ol>
+      </aside>
+      <main class="card" id="card"></main>
+    </div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="screen" id="sFinal"><div class="panelbig" id="finalBox"></div></section>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= CONTENT ================= */
+var ROUNDS = [
+  { id:'r1', title:'Watch 1: Bell ringer blitz', short:'Bell ringer', tek:'8.9E', kind:'quick',
+    intro:'Warm up your lamp with four quick questions.',
+    items:[
+      { q:'Which kind of irony is this? “Readers know something a character does not.”', opts:['Dramatic irony','Situational irony','Not irony'], a:0, why:'That is the definition of dramatic irony.' },
+      { q:'Which kind of irony is this? “The opposite of what is expected happens.”', opts:['Dramatic irony','Situational irony','Not irony'], a:1, why:'That is the definition of situational irony.' },
+      { q:'At the end of Volume II, what did the creature promise if Victor made him a companion?', opts:['He and his companion would go far away and never be seen by humans again.','He would help Victor build the companion.','He would return to the village and work.'], a:0, why:'Strip A: “neither you nor any other human being shall ever see us again.”' },
+      { q:'So what must Victor decide in Volume III?', opts:['Whether to finish the companion he promised.','Whether to leave the island forever.','Whether to ask the villagers for help.'], a:0, why:'Victor has to choose whether to keep working on the companion or stop.' }
+    ] },
+  { id:'r2', title:'Watch 2: Whose eyes?', short:'Whose eyes?', tek:'8.9E', kind:'sort',
+    intro:'Sort each card. Some show how Victor sees things. Others show what readers know from Volume II that Victor leaves out.',
+    bins:[{ id:'v', label:'How Victor sees it' },{ id:'r', label:'What readers know that Victor leaves out' }],
+    cards:[
+      { t:'The creature has been lonely and wants a companion more than anything.', b:'r' },
+      { t:'The creature’s grin shows malice and mockery.', b:'v' },
+      { t:'The creature secretly brought firewood to help the cottage family.', b:'r' },
+      { t:'If he finishes, future ages might curse him as their pest.', b:'v' },
+      { t:'The creature promised to leave humans alone if he gets a companion.', b:'r' },
+      { t:'Victor thinks of the creature as a devil.', b:'v' },
+      { t:'Victor left the creature alone right after bringing him to life.', b:'r' },
+      { t:'Breaking his promise protects the whole human race.', b:'v' }
+    ],
+    why:'Victor’s side is what he thinks and says: malice, curses, a devil, protecting humankind. Readers’ side is what Volume II and Volume I showed: loneliness, the promise, the firewood, and being left alone.' },
+  { id:'r3', title:'Watch 3: Match the effect', short:'Match the effect', tek:'8.9E', kind:'match',
+    intro:'How does the gap between what Victor sees and what readers know change how the moment feels? Match each moment to its effect. Two cards do not belong.',
+    rows:[
+      { l:'The creature at the window. Strip 2: “a ghastly grin wrinkled his lips as he gazed on me…”', c:'Readers feel uneasy and wonder whether Victor is reading the grin correctly.' },
+      { l:'Victor’s choice to stop. Strip 1: “I shuddered to think that future ages might curse me as their pest…”', c:'Victor’s fear sounds sincere but incomplete, so the choice feels both brave and risky.' }
+    ],
+    extra:['Readers feel certain that Victor sees everything clearly.','Readers stop caring about the creature’s side.'],
+    why:'The grin is something readers can read another way, so it feels uneasy. Victor’s fear is real, but he leaves out what readers know, so it feels incomplete.' },
+  { id:'r4', title:'Watch 4: Setup and surprise', short:'Setup and surprise', tek:'8.9E', kind:'match',
+    intro:'Every irony has a setup and a surprise. Match each setup to the outcome that completes it. One card does not belong.',
+    rows:[
+      { l:'Victor picks a remote place so no one will see his work, but…', c:'…the creature is watching him at the window.' },
+      { l:'Victor destroys the companion to protect people, but…', c:'…the creature threatens revenge on Victor and the people he loves.' },
+      { l:'The creature promised to leave humans alone if given a companion, but after she is destroyed…', c:'…he turns to revenge against Victor.' },
+      { l:'The creature wants a companion so he will not be alone, but after she is destroyed…', c:'…he is left more alone and angrier than before.' },
+      { l:'Victor works to end the creature’s threat, but his work itself…', c:'…it could create a second creature and a whole race of creatures.' }
+    ],
+    extra:['…the creature thanks Victor and leaves in peace.'],
+    why:'In each pair, the expected result is the opposite of what happens. That gap is situational irony.' },
+  { id:'r5', title:'Watch 5: Sort by type', short:'Sort by type', tek:'8.9E', kind:'sort',
+    intro:'Situational irony is the opposite of what is expected. Dramatic irony is when readers know something a character does not. Sort each card.',
+    bins:[{ id:'s', label:'Situational irony' },{ id:'d', label:'Dramatic irony' }],
+    cards:[
+      { t:'Readers know the creature helped the cottage family in secret, but Victor sees only a monster.', b:'d' },
+      { t:'Victor privately plans to stop, but the creature expects him to finish.', b:'d' },
+      { t:'Victor hides his work on a remote island, but the creature is watching.', b:'s' },
+      { t:'The creature’s grin looks cruel to Victor, but readers know how much he wants a companion.', b:'d' },
+      { t:'The one thing that could end the creature’s loneliness is taken away.', b:'s' },
+      { t:'Victor destroys the companion to protect people, but it makes the danger worse.', b:'s' }
+    ],
+    why:'Situational cards describe an outcome that is the opposite of what was expected. Dramatic cards depend on readers knowing more than a character.' },
+  { id:'r6', title:'Watch 6: Who knows what?', short:'Who knows what?', tek:'8.9E', kind:'match',
+    intro:'Dramatic irony depends on who knows what. Match each card to the person or group it describes. One card does not belong.',
+    rows:[
+      { l:'Readers know… (think about Volume II)', c:'…that the creature has been lonely and promised peace, and Victor misses this.' },
+      { l:'Victor knows… (think about what he is planning)', c:'…that he is having second thoughts, and the creature does not know it.' },
+      { l:'The creature knows… (think about the window)', c:'…that he is watching at the window, and Victor does not notice until he looks up.' }
+    ],
+    extra:['…nothing the other two do not, so there is no irony.'],
+    why:'Each group holds a piece of knowledge the others lack. That gap creates dramatic irony.' },
+  { id:'r7', title:'Watch 7: Case files', short:'Case files', tek:'8.9E and 8.5F', kind:'cases',
+    intro:'Each case has two screens: Victor’s and the creature’s. Start with a clue from the text or the pictures, then decide whether it is irony.',
+    cases:[
+      { name:'Case 1: The grin at the window', pages:'Pages 136 to 139', text:'Victor sees the creature’s “ghastly grin” at the window.',
+        steps:[
+          { p:'Victor’s screen: what does he think, and what is the clue?', o:[['The creature is mocking me and means harm. Clue: “ghastly grin.”',1,'Victor reads the grin as cruel and mocking.'],['The creature is happy for me. Clue: he is smiling.',0,'Victor is afraid of the creature, not glad for him.'],['The creature is afraid of me. Clue: he is at the window.',0,'Nothing in the moment shows the creature is afraid.']] },
+          { p:'Creature’s screen: what might he think, and what is the clue?', o:[['I am watching my companion take shape, and I hope I will not be alone. Clue: he has been lonely and wants a companion.',1,'Readers know from Volume II how much he wants a companion.'],['I am bored and want to leave. Clue: he is at the window.',0,'He is watching closely, not bored.'],['I am about to attack right now. Clue: his grin.',0,'Victor fears this, but nothing shows it is the creature’s plan at that moment.']] },
+          { p:'Is it irony, and what type?', o:[['Dramatic irony',1,'Readers know the creature’s hope, but Victor reads only malice.'],['Situational irony',0,'No outcome is the opposite of what was expected here. The gap is in what each side knows.'],['Not irony',0,'Readers know something Victor does not, so it is irony.']] },
+          { p:'Complete the sentence.', o:[['Victor expects the grin to show malice, but readers know the creature mostly wants a companion.',1,'This states the gap between Victor’s view and what readers know.'],['Victor expects the creature to leave, but the creature stays to help.',0,'The creature does not offer to help.'],['Victor expects to finish quickly, but the creature stops him.',0,'The creature does not stop him here.']] }
+        ] },
+      { name:'Case 2: The broken promise', pages:'Pages 136 to 139', text:'Victor tears the half-finished mate to pieces while the creature watches.',
+        steps:[
+          { p:'Victor’s screen: what does he think, and what is the clue?', o:[['I am protecting humankind from a new race. Clue: he tears her apart.',1,'His fear for humankind drives the choice.'],['I am keeping my promise. Clue: he destroys her.',0,'Destroying her breaks his promise.'],['I want to hurt the creature. Clue: he tears her apart.',0,'His reason is fear for others, not cruelty.']] },
+          { p:'Creature’s screen: what might he think, and what is the clue?', o:[['My one hope for a companion is gone, and I was promised peace. Clue: he watches her torn apart.',1,'The creature watches the promise break.'],['Victor is helping me. Clue: he is working on her.',0,'Victor is destroying her, not helping.'],['I do not care what happens. Clue: he stays at the window.',0,'He has been watching closely and wants a companion.']] },
+          { p:'Is it irony, and what type?', o:[['Situational irony',1,'Victor expects to end the danger, but it gets worse.'],['Dramatic irony',0,'The surprise is the result of the choice, not a gap in knowledge.'],['Not irony',0,'The outcome is the opposite of what Victor expected.']] },
+          { p:'Complete the sentence.', o:[['Victor expects to end the danger, but the creature vows revenge instead.',1,'The choice meant to protect people makes the danger worse.'],['Victor expects the creature to thank him, but he runs away.',0,'Victor does not expect thanks.'],['Victor expects to finish soon, but he runs out of supplies.',0,'Supplies are not part of the moment.']] }
+        ] },
+      { name:'Case 3: A curse on future generations', pages:'Page 137', text:'Victor asks, “Had I a right, for my own benefit, to inflict this curse upon everlasting generations?” Remember: in Volume I, Victor dreamed that a new species would bless him as its creator.',
+        steps:[
+          { p:'Victor’s screen: what does he think, and what is the clue?', o:[['A new species might curse me, not bless me. Clue: “curse upon everlasting generations.”',1,'He now pictures a curse, the opposite of the blessing he once imagined.'],['A new species will surely thank me. Clue: he asks about his “right.”',0,'He is doubting, not certain.'],['I do not care about future generations. Clue: he keeps working.',0,'He is worried about future generations.']] },
+          { p:'Creature’s screen: what might he think, and what is the clue?', o:[['Victor is keeping his promise, so I will have a companion. Clue: Victor keeps working.',1,'The creature cannot see Victor’s doubts.'],['Victor is about to stop. Clue: he asks a question.',0,'The creature cannot hear Victor’s private question.'],['Victor is afraid of me. Clue: he is working alone.',0,'Nothing shows the creature thinks that.']] },
+          { p:'Is it irony, and what type?', o:[['Situational irony',1,'Victor expected a blessing from a new species, but he now fears a curse.'],['Dramatic irony',0,'The key surprise is the reversal of Victor’s own expectation.'],['Not irony',0,'The expected blessing has become a feared curse, so it is irony.']] },
+          { p:'Complete the sentence.', o:[['Victor expected a new species to bless him as its creator, but now he fears they would curse him.',1,'This names the reversal.'],['Victor expected to feel proud, but he feels hungry.',0,'Hunger is not part of the moment.'],['Victor expected the creature to leave, but he stays.',0,'This is not what the line shows.']] }
+        ] },
+      { name:'Case 4: Alone again', pages:'Pages 136 and 139', text:'Victor feared the mate “might quit him, and he be again alone.” Then Victor made “a solemn vow” never to resume his work.',
+        steps:[
+          { p:'Victor’s screen: what does he think, and what is the clue?', o:[['Even if I finish, things could go wrong and leave the creature angry and alone. Clue: “again alone.”',1,'He worries about a lonely, angry creature.'],['A companion will make the creature perfectly happy. Clue: he finishes the work.',0,'Victor doubts that.'],['I want to keep working. Clue: he made a vow.',0,'The vow is to never resume his work.']] },
+          { p:'Creature’s screen: what might he think, and what is the clue?', o:[['Victor has vowed to stop, so I will be alone again. Clue: “a solemn vow.”',1,'The vow ends the creature’s hope.'],['Victor will finish soon. Clue: he made a vow.',0,'A vow to stop means the opposite.'],['I am glad Victor is resting. Clue: he stopped working.',0,'He wanted the work finished.']] },
+          { p:'Is it irony, and what type?', o:[['Situational irony',1,'Victor feared the creature being alone, but his vow leaves him alone again.'],['Dramatic irony',0,'The main surprise is an outcome that matches what Victor feared.'],['Not irony',0,'The result is the very thing Victor worried about, so it is irony.']] },
+          { p:'Complete the sentence.', o:[['Victor fears the creature being left alone and angry, but his vow leaves the creature alone again.',1,'His choice causes the outcome he feared.'],['Victor fears the creature will leave, but he stays and helps.',0,'The creature does not help.'],['Victor fears being alone, but he is surrounded by friends.',0,'He is alone on the island.']] }
+        ] }
+    ],
+    why:'' },
+  { id:'r8', title:'Watch 8: Evidence to inference', short:'Evidence to inference', tek:'8.5F', kind:'match',
+    intro:'An inference is what you figure out from clues. Match each strip to the inference it best supports. Two cards do not belong.',
+    rows:[
+      { l:'Strip 1: “I shuddered to think that future ages might curse me as their pest…”', c:'Victor feels afraid and guilty about what he is making.' },
+      { l:'Strip 2: “a ghastly grin wrinkled his lips as he gazed on me…”', c:'Victor reads the creature’s grin as cruel and mocking.' },
+      { l:'Strip 3: “Do you dare to break your promise?”', c:'The creature feels betrayed because he believed the promise was a deal.' },
+      { l:'Strip 4: “I shall be with you on your wedding-night.”', c:'The creature plans revenge aimed at what Victor loves.' }
+    ],
+    extra:['The creature is pleased that Victor destroyed the companion.','Victor is excited to finish the companion quickly.'],
+    why:'Each inference follows from the exact words: “shuddered” shows fear, “grin” shows how Victor reads the creature, “break your promise” shows betrayal, and “wedding-night” points at what Victor loves.' },
+  { id:'r9', title:'Watch 9: Inference to reason', short:'Inference to reason', tek:'8.5F', kind:'match',
+    intro:'Now find the “because.” Match each inference to the reason that proves it. One card does not belong.',
+    rows:[
+      { l:'Victor feels afraid and guilty about what he is making.', c:'“Shuddered” shows fear, and “curse me” shows he worries about being blamed.' },
+      { l:'Victor reads the creature’s grin as cruel and mocking.', c:'A “ghastly grin” shows how Victor sees the creature’s face, as if he is mocking him.' },
+      { l:'The creature feels betrayed because he believed the promise was a deal.', c:'“Do you dare to break your promise?” shows he treated the promise as a binding deal.' },
+      { l:'The creature plans revenge aimed at what Victor loves.', c:'A wedding is a happy event, and “I shall be with you” means he will follow Victor.' }
+    ],
+    extra:['The word “fulfilling” shows Victor enjoys the work he is doing.'],
+    why:'A strong reason quotes exact words and explains what they show.' },
+  { id:'r10', title:'Watch 10: Exit ticket', short:'Exit ticket', tek:'8.9E and 8.5F', kind:'exit',
+    intro:'Last watch, and it is not scored. Tell your teacher how sure you feel.' }
+];
+
+/* ================= helpers ================= */
+function $(id){ return document.getElementById(id); }
+function el(tag, attrs, kids){ var n = document.createElement(tag); if (attrs) for (var k in attrs){ if (k === 'class') n.className = attrs[k]; else if (k === 'text') n.textContent = attrs[k]; else n.setAttribute(k, attrs[k]); } (kids || []).forEach(function(c){ if (c) n.appendChild(c); }); return n; }
+function shuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+function lsGet(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+function show(id){ ['sStart','sPlay','sFinal'].forEach(function(s){ $(s).classList.toggle('on', s === id); }); window.scrollTo(0, 0); }
+var NS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs){ var n = document.createElementNS(NS, tag); for (var k in attrs) n.setAttribute(k, attrs[k]); return n; }
+
+/* ================= scene ================= */
+var sceneRefs = {};
+function buildScene(){
+  var box = $('scene'); box.innerHTML = '';
+  var s = sv('svg', { viewBox:'0 0 320 200', role:'img', 'aria-label':'A lighthouse on an island at dusk. The beam gets stronger as you answer correctly.' });
+  var defs = sv('defs', {});
+  var lg = sv('linearGradient', { id:'sky', x1:'0', y1:'0', x2:'0', y2:'1' });
+  [['0%','#14153a'],['45%','#3b2a63'],['75%','#a64b7a'],['100%','#f28c28']].forEach(function(st){ lg.appendChild(sv('stop', { offset:st[0], 'stop-color':st[1] })); });
+  defs.appendChild(lg); s.appendChild(defs);
+  s.appendChild(sv('rect', { x:0, y:0, width:320, height:200, fill:'url(#sky)' }));
+  [[30,20],[70,40],[120,16],[180,30],[240,18],[290,44],[60,70],[270,80]].forEach(function(p){ s.appendChild(sv('circle', { cx:p[0], cy:p[1], r:1.4, fill:'#eef2fa', opacity:'.8' })); });
+  s.appendChild(sv('rect', { x:0, y:140, width:320, height:60, fill:'#10304a' }));
+  for (var i = 0; i < 9; i++) s.appendChild(sv('line', { x1:20+i*34, y1:150+(i%3)*14, x2:48+i*34, y2:150+(i%3)*14, stroke:'#2d6b8a', 'stroke-width':1.5, opacity:'.6' }));
+  s.appendChild(sv('polygon', { points:'150,145 175,118 215,110 255,120 280,145', fill:'#0a1620' }));
+  sceneRefs.beam1 = sv('polygon', { points:'215,66 320,40 320,96', fill:'#ffd978', opacity:'0' });
+  sceneRefs.beam2 = sv('polygon', { points:'215,66 110,40 110,96', fill:'#ffd978', opacity:'0' });
+  s.appendChild(sceneRefs.beam1); s.appendChild(sceneRefs.beam2);
+  s.appendChild(sv('polygon', { points:'200,118 230,118 224,70 206,70', fill:'#f1f3f3' }));
+  s.appendChild(sv('polygon', { points:'204,100 226,100 225,108 205,108', fill:'#c8483a' }));
+  s.appendChild(sv('polygon', { points:'207,82 223,82 222,90 208,90', fill:'#c8483a' }));
+  s.appendChild(sv('rect', { x:202, y:62, width:26, height:8, fill:'#1b2430' }));
+  sceneRefs.lamp = sv('rect', { x:209, y:50, width:12, height:12, fill:'#ffd978', opacity:'.25' });
+  s.appendChild(sceneRefs.lamp);
+  s.appendChild(sv('polygon', { points:'207,50 223,50 215,40', fill:'#1b2430' }));
+  s.appendChild(sv('rect', { x:168, y:124, width:26, height:20, fill:'#17222c' }));
+  s.appendChild(sv('polygon', { points:'164,126 181,112 198,126', fill:'#0b141c' }));
+  sceneRefs.win = sv('rect', { x:176, y:131, width:9, height:8, fill:'#ffd978', opacity:'.4' });
+  s.appendChild(sceneRefs.win);
+  box.appendChild(s);
+}
+function setBeam(p){
+  var v = p / 100;
+  sceneRefs.beam1.setAttribute('opacity', (0.05 + 0.5 * v).toFixed(2));
+  sceneRefs.beam2.setAttribute('opacity', (0.05 + 0.5 * v).toFixed(2));
+  sceneRefs.lamp.setAttribute('opacity', (0.25 + 0.75 * v).toFixed(2));
+  sceneRefs.win.setAttribute('opacity', (0.4 + 0.6 * v).toFixed(2));
+  $('beamFill').style.width = Math.round(p) + '%'; $('beamTxt').textContent = Math.round(p) + '%';
+}
+
+/* ================= state ================= */
+var G = null;
+function totalItems(rs){ var n = 0; rs.forEach(function(r){ n += itemCount(r); }); return n; }
+function itemCount(r){
+  if (r.kind === 'quick') return r.items.length;
+  if (r.kind === 'sort') return r.cards.length;
+  if (r.kind === 'match') return r.rows.length;
+  if (r.kind === 'cases') return r.cases.length * 4;
+  return 0;
+}
+function newGame(rounds, mode){
+  G = { rounds:rounds, idx:0, score:0, correct:0, asked:0, results:{}, mode:mode, turn:0, teams:[{ n:'Team A', s:0 },{ n:'Team B', s:0 }], total:totalItems(rounds), wonder:'', conf:0 };
+  buildScene(); setBeam(0); renderDots(); updateStats();
+}
+function renderDots(){
+  var d = $('dots'); d.innerHTML = '';
+  G.rounds.forEach(function(r, i){ d.appendChild(el('li', { class: i < G.idx ? 'done' : (i === G.idx ? 'cur' : ''), text:String(i + 1), title:r.short })); });
+}
+function updateStats(){
+  $('score').textContent = G.score;
+  $('teamTxt').textContent = G.mode === 'teams' ? G.teams[0].n + ' ' + G.teams[0].s + ', ' + G.teams[1].n + ' ' + G.teams[1].s : '';
+}
+function award(ok){
+  G.asked++;
+  if (ok) { G.correct++; G.score += 100; if (G.mode === 'teams') G.teams[G.turn].s += 100; }
+  setBeam(G.total ? G.correct / G.total * 100 : 0); updateStats();
+}
+function rec(r, correct, total){ G.results[r.id] = { c:correct, t:total }; }
+
+/* ================= round rendering ================= */
+function header(r){
+  var card = $('card'); card.innerHTML = '';
+  card.appendChild(el('div', { class:'meta' }, [ el('span', { class:'tag', text:'TEKS ' + r.tek }), el('span', { text:'Watch ' + (G.idx + 1) + ' of ' + G.rounds.length }) ]));
+  card.appendChild(el('h2', { text:r.title.replace(/^Watch \d+: /, '') }));
+  if (G.mode === 'teams' && r.kind !== 'exit') card.appendChild(el('p', { class:'prompt', text:G.teams[G.turn].n + ', your turn.' }));
+  card.appendChild(el('p', { class:'prompt', text:r.intro }));
+  return card;
+}
+function finishButton(card, r, correct, total){
+  rec(r, correct, total);
+  var last = G.idx >= G.rounds.length - 1;
+  var b = el('button', { type:'button', text: last ? 'See my results' : 'Next watch' });
+  b.addEventListener('click', function(){ G.idx++; if (G.mode === 'teams') G.turn = (G.turn + 1) % 2; renderDots(); if (G.idx >= G.rounds.length) showFinal(); else renderRound(); });
+  card.appendChild(el('div', { class:'actions' }, [b])); b.focus({ preventScroll:true });
+}
+function renderRound(){
+  var r = G.rounds[G.idx];
+  $('barInfo').textContent = r.title; renderDots();
+  if (r.kind === 'quick') return quick(r);
+  if (r.kind === 'sort') return sorter(r);
+  if (r.kind === 'match') return matcher(r);
+  if (r.kind === 'cases') return cases(r);
+  return exitRound(r);
+}
+
+/* ---- quick ---- */
+function quick(r){
+  var card = header(r), area = el('div'); card.appendChild(area);
+  var i = 0, right = 0;
+  (function ask(){
+    area.innerHTML = '';
+    var it = r.items[i];
+    area.appendChild(el('p', { class:'prompt', text:(i + 1) + ' of ' + r.items.length + '. ' + it.q }));
+    var opts = shuffle(it.opts.map(function(o, k){ return { o:o, ok:k === it.a }; }));
+    var box = el('div', { class:'choices' }), fb = el('div', { class:'fb', role:'status', 'aria-live':'polite' }), done = false;
+    opts.forEach(function(op){
+      var b = el('button', { type:'button', class:'choice', text:op.o });
+      b.addEventListener('click', function(){
+        if (done) return; done = true;
+        box.querySelectorAll('button').forEach(function(x, k){ x.disabled = true; if (opts[k].ok) x.classList.add('right'); });
+        if (!op.ok) b.classList.add('wrong'); else right++;
+        award(op.ok);
+        fb.className = 'fb on ' + (op.ok ? 'ok' : 'no'); fb.innerHTML = '';
+        fb.appendChild(el('h3', { text: op.ok ? 'Beam brighter!' : 'Not quite.' })); fb.appendChild(el('p', { text:it.why }));
+        var nb = el('button', { type:'button', text: i + 1 < r.items.length ? 'Next question' : 'Finish the watch' });
+        nb.addEventListener('click', function(){ i++; if (i < r.items.length) ask(); else { area.innerHTML = ''; area.appendChild(el('p', { class:'prompt', text:'You got ' + right + ' of ' + r.items.length + '.' })); finishButton(area, r, right, r.items.length); } });
+        fb.appendChild(nb); nb.focus({ preventScroll:true });
+      });
+      box.appendChild(b);
+    });
+    area.appendChild(box); area.appendChild(fb);
+  })();
+}
+
+/* ---- sort ---- */
+function sorter(r){
+  var card = header(r);
+  var cards = shuffle(r.cards.map(function(c, i){ return { id:i, t:c.t, b:c.b, bin:null }; }));
+  var sel = null, checked = false;
+  var wrap = el('div'); card.appendChild(wrap);
+  var binsBox = el('div', { class:'bins ' + (r.bins.length === 2 ? 'two' : '') });
+  var tray = el('div', { class:'tray' }), checkBtn = el('button', { type:'button', text:'Check' }), fb = el('div', { class:'fb', role:'status', 'aria-live':'polite' });
+  wrap.appendChild(binsBox); wrap.appendChild(tray);
+  wrap.appendChild(el('div', { class:'actions' }, [checkBtn])); wrap.appendChild(fb);
+  function mk(c){
+    var b = el('button', { type:'button', class:'pcard' + (sel === c.id ? ' sel' : ''), text:c.t, draggable: checked ? 'false' : 'true' });
+    b.addEventListener('click', function(ev){ if (checked) { ev.stopPropagation(); return; } if (c.bin !== null) { if (sel !== null) return; ev.stopPropagation(); c.bin = null; draw(); return; } ev.stopPropagation(); sel = (sel === c.id) ? null : c.id; draw(); });
+    b.addEventListener('dragstart', function(ev){ if (checked) return; sel = c.id; try { ev.dataTransfer.setData('text/plain', String(c.id)); } catch (e) {} });
+    if (checked && c.bin !== null) b.classList.add(c.bin === c.b ? 'right' : 'wrong');
+    return b;
+  }
+  function draw(){
+    binsBox.innerHTML = ''; tray.innerHTML = '';
+    r.bins.forEach(function(bn){
+      var bx = el('div', { class:'bin', 'aria-label':'Box: ' + bn.label });
+      bx.appendChild(el('h3', { text:bn.label }));
+      var inside = cards.filter(function(c){ return c.bin === bn.id; });
+      if (!inside.length) bx.appendChild(el('div', { class:'hint', text:'Tap a card, then tap here.' }));
+      inside.forEach(function(c){ bx.appendChild(mk(c)); });
+      function drop(){ if (checked || sel === null) return; var c = cards.filter(function(x){ return x.id === sel; })[0]; if (c) { c.bin = bn.id; sel = null; draw(); } }
+      bx.addEventListener('click', drop);
+      bx.addEventListener('dragover', function(ev){ ev.preventDefault(); bx.classList.add('hot'); });
+      bx.addEventListener('dragleave', function(){ bx.classList.remove('hot'); });
+      bx.addEventListener('drop', function(ev){ ev.preventDefault(); drop(); });
+      binsBox.appendChild(bx);
+    });
+    tray.appendChild(el('h3', { text:'Cards to sort' }));
+    cards.filter(function(c){ return c.bin === null; }).forEach(function(c){ tray.appendChild(mk(c)); });
+    checkBtn.disabled = checked || cards.some(function(c){ return c.bin === null; });
+  }
+  checkBtn.addEventListener('click', function(){
+    if (checked) return; checked = true; var right = 0;
+    cards.forEach(function(c){ var ok = c.bin === c.b; if (ok) right++; award(ok); });
+    draw(); checkBtn.disabled = true;
+    fb.className = 'fb on ' + (right === cards.length ? 'ok' : 'no'); fb.innerHTML = '';
+    fb.appendChild(el('h3', { text:'You sorted ' + right + ' of ' + cards.length + ' correctly.' }));
+    var wrongs = cards.filter(function(c){ return c.bin !== c.b; });
+    if (wrongs.length) { fb.appendChild(el('p', { text:'Green cards were right and red cards were not. The red ones belong in the other box:' })); var ul = el('ul'); wrongs.forEach(function(c){ var lab = r.bins.filter(function(b){ return b.id === c.b; })[0].label; ul.appendChild(el('li', { text:'“' + c.t + '” goes in “' + lab + '.”' })); }); fb.appendChild(ul); }
+    fb.appendChild(el('p', { text:r.why }));
+    finishButton(fb, r, right, cards.length);
+  });
+  draw();
+}
+
+/* ---- match ---- */
+function matcher(r){
+  var card = header(r);
+  var pile = shuffle(r.rows.map(function(row, i){ return { id:i, t:row.c, answer:i, slot:null }; }).concat(r.extra.map(function(t, k){ return { id:100 + k, t:t, answer:-1, slot:null }; })));
+  var sel = null, checked = false;
+  var rowsBox = el('div', { class:'rows' }), tray = el('div', { class:'tray' }), checkBtn = el('button', { type:'button', text:'Check' }), fb = el('div', { class:'fb', role:'status', 'aria-live':'polite' });
+  card.appendChild(rowsBox); card.appendChild(tray); card.appendChild(el('div', { class:'actions' }, [checkBtn])); card.appendChild(fb);
+  function mk(c, slotIdx){
+    var b = el('button', { type:'button', class:'pcard' + (sel === c.id ? ' sel' : ''), text:c.t });
+    b.addEventListener('click', function(ev){ if (checked) { ev.stopPropagation(); return; } if (c.slot !== null) { if (sel !== null) return; ev.stopPropagation(); c.slot = null; draw(); return; } ev.stopPropagation(); sel = (sel === c.id) ? null : c.id; draw(); });
+    if (checked && slotIdx !== undefined) b.classList.add(c.answer === slotIdx ? 'right' : 'wrong');
+    return b;
+  }
+  function place(i){
+    if (checked || sel === null) return;
+    var c = pile.filter(function(x){ return x.id === sel; })[0]; if (!c) return;
+    pile.forEach(function(x){ if (x.slot === i) x.slot = null; });
+    c.slot = i; sel = null; draw();
+  }
+  function draw(){
+    rowsBox.innerHTML = ''; tray.innerHTML = '';
+    r.rows.forEach(function(row, i){
+      var mr = el('div', { class:'mrow' });
+      mr.appendChild(el('div', { class:'left', text:row.l }));
+      var sl = el('div', { class:'slot', 'aria-label':'Slot ' + (i + 1) });
+      var inside = pile.filter(function(c){ return c.slot === i; })[0];
+      if (inside) sl.appendChild(mk(inside, i)); else sl.appendChild(el('div', { class:'hint', text:'Tap a card, then tap here.' }));
+      sl.addEventListener('click', function(){ place(i); });
+      sl.addEventListener('dragover', function(ev){ ev.preventDefault(); });
+      sl.addEventListener('drop', function(ev){ ev.preventDefault(); place(i); });
+      mr.appendChild(sl); rowsBox.appendChild(mr);
+    });
+    tray.appendChild(el('h3', { text:'Cards' }));
+    pile.filter(function(c){ return c.slot === null; }).forEach(function(c){
+      var b = mk(c); b.setAttribute('draggable', checked ? 'false' : 'true');
+      b.addEventListener('dragstart', function(ev){ sel = c.id; try { ev.dataTransfer.setData('text/plain', String(c.id)); } catch (e) {} });
+      tray.appendChild(b);
+    });
+    var filled = pile.filter(function(c){ return c.slot !== null; }).length;
+    checkBtn.disabled = checked || filled < r.rows.length;
+  }
+  checkBtn.addEventListener('click', function(){
+    if (checked) return; checked = true; var right = 0;
+    r.rows.forEach(function(row, i){ var c = pile.filter(function(x){ return x.slot === i; })[0]; var ok = !!c && c.answer === i; if (ok) right++; award(ok); });
+    draw(); checkBtn.disabled = true;
+    fb.className = 'fb on ' + (right === r.rows.length ? 'ok' : 'no'); fb.innerHTML = '';
+    fb.appendChild(el('h3', { text:'You matched ' + right + ' of ' + r.rows.length + ' correctly.' }));
+    var wrongs = r.rows.filter(function(row, i){ var c = pile.filter(function(x){ return x.slot === i; })[0]; return !(c && c.answer === i); });
+    if (wrongs.length) { fb.appendChild(el('p', { text:'Here is what belongs with the ones you missed:' })); var ul = el('ul'); wrongs.forEach(function(row){ ul.appendChild(el('li', { text:row.l + ' → ' + row.c })); }); fb.appendChild(ul); }
+    fb.appendChild(el('p', { text:r.why }));
+    finishButton(fb, r, right, r.rows.length);
+  });
+  draw();
+}
+
+/* ---- cases ---- */
+function cases(r){
+  var card = header(r), area = el('div'); card.appendChild(area);
+  var ci = 0, si = 0, right = 0;
+  (function step(){
+    area.innerHTML = '';
+    var cs = r.cases[ci], st = cs.steps[si];
+    area.appendChild(el('div', { class:'casebox' }, [ el('strong', { text:cs.name }), el('small', { text:cs.pages }), el('div', { text:cs.text }) ]));
+    area.appendChild(el('p', { class:'prompt', text:'Step ' + (si + 1) + ' of 4. ' + st.p }));
+    var opts = shuffle(st.o.map(function(o){ return { t:o[0], ok:o[1] === 1, why:o[2] }; }));
+    var box = el('div', { class:'choices' }), fb = el('div', { class:'fb', role:'status', 'aria-live':'polite' }), done = false;
+    opts.forEach(function(op){
+      var b = el('button', { type:'button', class:'choice', text:op.t });
+      b.addEventListener('click', function(){
+        if (done) return; done = true;
+        box.querySelectorAll('button').forEach(function(x, k){ x.disabled = true; if (opts[k].ok) x.classList.add('right'); });
+        if (!op.ok) b.classList.add('wrong'); else right++;
+        award(op.ok);
+        fb.className = 'fb on ' + (op.ok ? 'ok' : 'no'); fb.innerHTML = '';
+        fb.appendChild(el('h3', { text: op.ok ? 'Case clue found!' : 'Look again.' })); fb.appendChild(el('p', { text:op.why }));
+        var lastStep = si === 3, lastCase = ci === r.cases.length - 1;
+        var nb = el('button', { type:'button', text: lastStep ? (lastCase ? 'Close the case files' : 'Next case') : 'Next step' });
+        nb.addEventListener('click', function(){
+          if (!lastStep) { si++; step(); }
+          else if (!lastCase) { ci++; si = 0; step(); }
+          else { area.innerHTML = ''; area.appendChild(el('p', { class:'prompt', text:'You solved ' + right + ' of ' + (r.cases.length * 4) + ' steps.' })); finishButton(area, r, right, r.cases.length * 4); }
+        });
+        fb.appendChild(nb); nb.focus({ preventScroll:true });
+      });
+      box.appendChild(b);
+    });
+    area.appendChild(box); area.appendChild(fb);
+  })();
+}
+
+/* ---- exit ---- */
+function exitRound(r){
+  var card = header(r);
+  card.appendChild(el('p', { class:'prompt', text:'How sure are you about finding irony and making inferences?' }));
+  var labels = [['1','Not yet'],['2','A little'],['3','Mostly'],['4','Got it']];
+  var sc = el('div', { class:'scale', role:'group', 'aria-label':'Confidence from 1 to 4' });
+  labels.forEach(function(l, i){
+    var b = el('button', { type:'button', 'aria-pressed':'false' }, [ el('b', { text:l[0] }), el('span', { text:l[1] }) ]);
+    b.addEventListener('click', function(){ G.conf = i + 1; sc.querySelectorAll('button').forEach(function(x, k){ x.classList.toggle('on', k === i); x.setAttribute('aria-pressed', k === i ? 'true' : 'false'); }); });
+    sc.appendChild(b);
+  });
+  card.appendChild(sc);
+  card.appendChild(el('div', { class:'field' }, [ el('label', { 'for':'wonder', text:'One thing I still wonder about irony or inferences (optional):' }), el('textarea', { id:'wonder' }) ]));
+  var b = el('button', { type:'button', text:'See my results' });
+  b.addEventListener('click', function(){ G.wonder = ($('wonder').value || '').trim(); rec(r, 0, 0); G.idx++; renderDots(); showFinal(); });
+  card.appendChild(el('div', { class:'actions' }, [b]));
+}
+
+/* ================= results ================= */
+function rankFor(p){ if (p >= 0.85) return 'Lighthouse'; if (p >= 0.65) return 'Beacon'; if (p >= 0.4) return 'Lantern'; return 'Spark'; }
+function showFinal(){
+  var box = $('finalBox'); box.innerHTML = '';
+  var pct = G.asked ? G.correct / G.asked : 0, rank = rankFor(pct);
+  var prev = parseFloat(lsGet('irony-watch-best') || '0'); if (pct > prev) lsSet('irony-watch-best', String(pct));
+  $('barInfo').textContent = 'Results';
+  box.appendChild(el('div', { class:'rank', text:rank }));
+  box.appendChild(el('p', { text:'You solved ' + G.correct + ' of ' + G.asked + ' items (' + Math.round(pct * 100) + '%) and scored ' + G.score + ' points. Your beam reached ' + Math.round(pct * 100) + '%.' }));
+  if (G.mode === 'teams') box.appendChild(el('p', { text:G.teams[0].n + ': ' + G.teams[0].s + ' points. ' + G.teams[1].n + ': ' + G.teams[1].s + ' points. Together you lit one lighthouse.' }));
+  var bars = el('div', { class:'bars' }), lines = [];
+  G.rounds.forEach(function(r){
+    var res = G.results[r.id]; if (!res || !res.t) return;
+    lines.push(r.short + ' (' + r.tek + '): ' + res.c + ' of ' + res.t);
+    var f = el('div', { class:'bf' }); f.style.width = Math.round(res.c / res.t * 100) + '%';
+    bars.appendChild(el('div', { class:'brow' }, [ el('span', { class:'nm', text:r.short + ' (' + r.tek + ')' }), el('div', { class:'bt' }, [f]), el('span', { text:res.c + ' of ' + res.t }) ]));
+  });
+  box.appendChild(el('h3', { text:'Your watch log' })); box.appendChild(bars);
+  var weakest = null, wp = 2;
+  G.rounds.forEach(function(r){ var res = G.results[r.id]; if (!res || !res.t) return; var p = res.c / res.t; if (p < wp) { wp = p; weakest = r; } });
+  if (weakest && wp < 1) box.appendChild(el('p', { text:'Next, replay “' + weakest.short + '.” Look at the clue first, then decide.' }));
+  if (G.conf) box.appendChild(el('p', { text:'You rated your confidence ' + G.conf + ' of 4.' }));
+  box.appendChild(el('div', { class:'field' }, [ el('label', { 'for':'nm', text:'Your name (optional, only used in the copied score card)' }), el('input', { type:'text', id:'nm', autocomplete:'off' }) ]));
+  var msg = el('p', { class:'msg', 'aria-live':'polite' }), acts = el('div', { class:'actions' });
+  var bCopy = el('button', { type:'button', text:'Copy my score card' });
+  bCopy.addEventListener('click', function(){
+    var name = ($('nm').value || '').trim();
+    var out = ['Irony Watch: Volume III, Chapter 3']; if (name) out.push('Name: ' + name);
+    out.push('Rank: ' + rank); out.push('Items correct: ' + G.correct + ' of ' + G.asked + ' (' + Math.round(pct * 100) + '%)'); out.push('Score: ' + G.score);
+    lines.forEach(function(l){ out.push(l); }); if (G.conf) out.push('Confidence: ' + G.conf + ' of 4'); if (G.wonder) out.push('Still wondering: ' + G.wonder);
+    var txt = out.join('\n');
+    function fallback(){ var ta = el('textarea', { readonly:'readonly', 'aria-label':'Score card text' }); ta.value = txt; box.appendChild(ta); ta.focus(); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} msg.textContent = ok ? 'Copied.' : 'Select the text in the box and copy it with Ctrl+C (or Cmd+C).'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function(){ msg.textContent = 'Copied.'; }, fallback); else fallback();
+  });
+  acts.appendChild(bCopy);
+  var missed = G.rounds.filter(function(r){ var res = G.results[r.id]; return res && res.t && res.c < res.t; });
+  if (missed.length) { var bm = el('button', { type:'button', class:'alt', text:'Replay the ' + missed.length + (missed.length === 1 ? ' watch' : ' watches') + ' I missed' }); bm.addEventListener('click', function(){ start(missed, G.mode); }); acts.appendChild(bm); }
+  var ba = el('button', { type:'button', class:'alt', text:'Play again' }); ba.addEventListener('click', toStart); acts.appendChild(ba);
+  box.appendChild(acts); box.appendChild(msg); show('sFinal');
+}
+
+/* ================= start ================= */
+function start(rounds, mode){ newGame(rounds, mode); show('sPlay'); renderRound(); }
+function toStart(){
+  $('barInfo').textContent = 'Volume III, Chapter 3';
+  var b = parseFloat(lsGet('irony-watch-best') || '0');
+  $('bestLine').textContent = b > 0 ? 'Your best on this device: ' + Math.round(b * 100) + '% correct.' : '';
+  G = null; show('sStart');
+}
+$('btnStart').addEventListener('click', function(){ start(ROUNDS, document.querySelector('input[name="mode"]:checked').value); });
+toStart();
+window.__IW = { ROUNDS:ROUNDS, get G(){ return G; } };
+})();
+</script>
+</body>
+</html>
